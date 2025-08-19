@@ -66,7 +66,7 @@ struct ContentView: View {
                         .foregroundStyle(.secondary)
                 }
             }
-            .navigationTitle("BuddyLock Starter")
+            .navigationTitle("BuddyLock")
         }
     }
 }
