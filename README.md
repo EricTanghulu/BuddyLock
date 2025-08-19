@@ -1,30 +1,28 @@
 # BuddyLock (iOS, SwiftUI)
 
-**BuddyLock** is an iOS app that helps people reclaim their time by combining **screen-time limits** with **social accountability**. Instead of managing limits alone, BuddyLock lets your friends (or accountability partners) play an active role in keeping you focused.
-
-This repo is a **starter project** showcasing how to use Apple’s Screen Time APIs (Family Controls, Managed Settings, and Device Activity) to build a socially-driven digital wellbeing app.
+**BuddyLock** is an iOS app designed to help people reclaim focus by combining **screen-time limits** with **friend accountability**. Instead of managing digital wellbeing alone, BuddyLock brings in your accountability circle to keep you motivated and on track.
 
 ---
 
 ## ✨ Features
 
 - **Screen Time Integration**  
-  Requests iOS 16+ permission to manage app & domain limits.
+  Built on Apple’s iOS 16+ Screen Time APIs (Family Controls, Managed Settings, Device Activity).
 
 - **Family Activity Picker**  
-  Choose which apps, categories, and websites to shield.
+  Select apps, categories, and websites to shield with a few taps.
 
 - **Shields & Focus Sessions**  
-  Block apps immediately or run time-boxed focus sessions that end automatically.
+  Instantly block distracting apps or set a time-boxed focus period that ends automatically.
 
 - **Customizable Shield UI**  
-  Sample extension that can display “Ask a Friend” or “Not Now” when a user tries to open a blocked app.
+  Sample extension that can show “Ask a Friend” when you attempt to open a blocked app.
 
-- **Device Activity Monitor**  
-  Example extension for scheduling daily/weekly screen-time challenges.
+- **Device Activity Monitoring**  
+  Example extension for scheduling recurring app limits and reporting usage.
 
-- **Buddy Approval Service (stub)**  
-  A protocol stub for implementing friend-based approvals with CloudKit, Firebase, or any backend of your choice.
+- **Buddy Approval Stub**  
+  Protocol placeholder for integrating CloudKit, Firebase, or another backend to enable real-time friend approvals.
 
 ---
 
@@ -32,44 +30,45 @@ This repo is a **starter project** showcasing how to use Apple’s Screen Time A
 
 ### Prerequisites
 - macOS with **Xcode 15+**
-- An iOS device or simulator running **iOS 16+**
-- A free or paid **Apple Developer Account** (needed to enable Family Controls capability)
+- iOS device or simulator running **iOS 16+**
+- An Apple Developer Account (required for Family Controls capability)
 
 ### Installation
 ```bash
-git clone https://github.com/<your-username>/BuddyLockStarter.git
-cd BuddyLockStarter
-open BuddyLockStarter.xcodeproj
+git clone https://github.com/<your-username>/BuddyLock.git
+cd BuddyLock
+open BuddyLock.xcodeproj
 ```
 
 ### Setup in Xcode
-1. Enable **Signing & Capabilities**:
+1. Open the **BuddyLock** project in Xcode.
+2. Enable **Signing & Capabilities**:
    - Add **Family Controls**
    - Add **App Groups** (e.g., `group.com.yourcompany.buddylock`)
-2. Build & run on a simulator or device.
-3. Tap **Request Screen Time Permission** inside the app.
-4. Use the **Family Activity Picker** to choose apps/categories.
-5. Toggle **Activate shield now** or start a **Focus Session**.
+3. Build & run on a simulator or device.
+4. Tap **Request Screen Time Permission** inside the app.
+5. Use the **Family Activity Picker** to choose apps/categories.
+6. Toggle **Activate shield now** or start a **Focus Session**.
 
 ---
 
 ## 📂 Project Structure
 
-- `BuddyLockStarterApp.swift` — App entry point  
-- `ContentView.swift` — Main UI (authorization, shields, focus sessions)  
-- `ScreenTimeManager.swift` — Handles authorization & shield logic  
-- `Extensions/ShieldUIExtensionSample.swift` — Custom shield overlay (Ask a Friend)  
-- `Extensions/DeviceActivityMonitorExtension/MonitorSample.swift` — Monitor for scheduled activity  
-- `Services/BuddyApprovalService.swift` — Protocol stub for friend approvals  
+- `BuddyLockApp.swift` — App entry point  
+- `ContentView.swift` — Main UI for managing shields & sessions  
+- `ScreenTimeManager.swift` — Core logic for authorization and shielding  
+- `Extensions/ShieldUIExtensionSample.swift` — Sample custom overlay  
+- `Extensions/DeviceActivityMonitorExtension/MonitorSample.swift` — Example monitor extension  
+- `Services/BuddyApprovalService.swift` — Protocol for future buddy integrations  
 
 ---
 
 ## 🛠 Roadmap
 
-- Backend integration for real-time **friend approvals**  
-- Push notifications for unlock requests  
-- Team challenges & focus rooms  
-- Cross-device sync  
+- 🔗 Backend for **real-time friend approvals**  
+- 📲 Push notifications for unlock requests  
+- 👥 Group challenges & focus rooms  
+- 💻 Cross-device sync and analytics  
 
 ---
 
@@ -78,15 +77,10 @@ open BuddyLockStarter.xcodeproj
 Contributions are welcome!  
 - Fork the repo and create a feature branch.  
 - Submit a pull request with a clear description.  
-- For large features, please open an issue first to discuss the approach.  
+- For major changes, please open an issue first to discuss.  
 
 ---
 
 ## 📜 License
 
-This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
-
----
-
-### 🙌 Acknowledgements
-Built with ❤️ using Apple’s [Family Controls](https://developer.apple.com/documentation/familycontrols), [Managed Settings](https://developer.apple.com/documentation/managedsettings), and [Device Activity](https://developer.apple.com/documentation/deviceactivity) frameworks.
+This project is licensed under the MIT License
