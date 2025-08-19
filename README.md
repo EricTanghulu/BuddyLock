@@ -1,4 +1,4 @@
-# BuddyLock Starter (iOS, SwiftUI)
+# BuddyLock (iOS, SwiftUI)
 
 **BuddyLock** is an iOS app that helps people reclaim their time by combining **screen-time limits** with **social accountability**. Instead of managing limits alone, BuddyLock lets your friends (or accountability partners) play an active role in keeping you focused.
 
