@@ -1,3 +1,4 @@
+
 import Foundation
 import SwiftUI
 
@@ -11,13 +12,17 @@ import FamilyControls
 
 @MainActor
 final class ScreenTimeManager: ObservableObject {
-    // Public UI state
+    // MARK: - Published UI State
     @Published var isAuthorized: Bool = false
     @Published var isShieldActive: Bool = false
+    @Published var focusState: FocusSessionState = .idle
 
     #if canImport(FamilyControls)
     @Published var selection: FamilyActivitySelection = .init()
     #endif
+
+    // MARK: - Private
+    private var focusTask: Task<Void, Never>?
 
     var authorizationLabel: String { isAuthorized ? "Authorized" : "Not authorized" }
 
@@ -31,7 +36,6 @@ final class ScreenTimeManager: ObservableObject {
 
     #if canImport(FamilyControls)
     func refreshAuthorizationState() async {
-        // authorizationStatus is async, non-throwing.
         let status = await AuthorizationCenter.shared.authorizationStatus
         isAuthorized = (status == .approved)
     }
@@ -53,7 +57,7 @@ final class ScreenTimeManager: ObservableObject {
 
     // MARK: - Shields
 
-    /// Apply immediate shields for the current selection (apps, app categories, and web domains).
+    /// Applies shields for the current selection (apps, app categories, and web domains).
     func applyShield() {
         #if canImport(ManagedSettings) && canImport(FamilyControls)
         let store = ManagedSettingsStore()
@@ -74,7 +78,7 @@ final class ScreenTimeManager: ObservableObject {
         #endif
     }
 
-    /// Clear all shields that we may have applied.
+    /// Clears all shields.
     func clearShield() {
         #if canImport(ManagedSettings)
         let store = ManagedSettingsStore()
@@ -85,21 +89,101 @@ final class ScreenTimeManager: ObservableObject {
         isShieldActive = false
     }
 
-    // MARK: - Focus Session
+    // MARK: - Focus Sessions (cool-off + countdown)
 
-    /// Simple timeboxed focus session: shield now, unshield after `minutes`.
-    func startFocusSession(minutes: Int) async {
-        applyShield()
-        let seconds = max(0, minutes) * 60
-        // Sleep is cancellable; if the task is cancelled we won't unshield.
-        try? await Task.sleep(nanoseconds: UInt64(seconds) * 1_000_000_000)
-        if Task.isCancelled { return }
-        clearShield()
+    /// Represents a focus session with an optional cool-off delay before starting.
+    /// During warm-up users can cancel to "resist the urge".
+    func startFocusSession(minutes: Int, warmUpSeconds: Int = 0) {
+        // Cancel any existing session first.
+        cancelFocusSession()
+
+        let totalRunSeconds = max(0, minutes) * 60
+        let warmUp = max(0, warmUpSeconds)
+
+        focusTask = Task { [weak self] in
+            guard let self else { return }
+
+            // 1) Apply shields immediately (so taps are blocked while cooling off).
+            self.applyShield()
+
+            // 2) Optional cool-off countdown.
+            if warmUp > 0 {
+                await self.countDown(duration: warmUp, phase: .warmUp)
+                if Task.isCancelled { return }
+            }
+
+            // 3) Run the focus countdown.
+            await self.countDown(duration: totalRunSeconds, phase: .running)
+
+            if Task.isCancelled { return }
+            self.clearShield()
+            self.focusState = .idle
+        }
     }
 
-    func stopFocusSession() {
+    /// Cancels any in-flight session and clears shields.
+    func cancelFocusSession() {
+        focusTask?.cancel()
+        focusTask = nil
         clearShield()
+        focusState = .idle
     }
+
+    // MARK: - Helpers
+
+    private func countDown(duration: Int, phase: FocusSessionPhase) async {
+        var remaining = duration
+        await MainActor.run {
+            switch phase {
+            case .warmUp: self.focusState = .warmUp(secondsRemaining: remaining)
+            case .running: self.focusState = .running(secondsRemaining: remaining)
+            }
+        }
+
+        while remaining > 0 {
+            try? await Task.sleep(nanoseconds: 1_000_000_000)
+            if Task.isCancelled { return }
+            remaining -= 1
+            await MainActor.run {
+                switch phase {
+                case .warmUp: self.focusState = .warmUp(secondsRemaining: remaining)
+                case .running: self.focusState = .running(secondsRemaining: remaining)
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Focus Session State
+
+enum FocusSessionState: Equatable {
+    case idle
+    case warmUp(secondsRemaining: Int)
+    case running(secondsRemaining: Int)
+
+    var isActive: Bool {
+        if case .idle = self { return false } else { return true }
+    }
+
+    var secondsRemaining: Int? {
+        switch self {
+        case .warmUp(let s), .running(let s): return s
+        case .idle: return nil
+        }
+    }
+
+    var phase: FocusSessionPhase? {
+        switch self {
+        case .warmUp: return .warmUp
+        case .running: return .running
+        case .idle: return nil
+        }
+    }
+}
+
+enum FocusSessionPhase: Equatable {
+    case warmUp
+    case running
 }
 
 #if canImport(FamilyControls)
