@@ -10,12 +10,17 @@ import ManagedSettings
 import FamilyControls
 #endif
 
+extension Notification.Name {
+    static let focusSessionCompleted = Notification.Name("BuddyLock.FocusSessionCompleted")
+}
+
 @MainActor
 final class ScreenTimeManager: ObservableObject {
     // MARK: - Published UI State
     @Published var isAuthorized: Bool = false
     @Published var isShieldActive: Bool = false
     @Published var focusState: FocusSessionState = .idle
+    @Published var scheduledStart: Date? = nil
 
     #if canImport(FamilyControls)
     @Published var selection: FamilyActivitySelection = .init()
@@ -23,6 +28,7 @@ final class ScreenTimeManager: ObservableObject {
 
     // MARK: - Private
     private var focusTask: Task<Void, Never>?
+    private var scheduleTask: Task<Void, Never>?
 
     var authorizationLabel: String { isAuthorized ? "Authorized" : "Not authorized" }
 
@@ -89,9 +95,9 @@ final class ScreenTimeManager: ObservableObject {
         isShieldActive = false
     }
 
-    // MARK: - Focus Sessions (cool-off + countdown)
+    // MARK: - Focus Sessions (warm-up + countdown)
 
-    /// Represents a focus session with an optional cool-off delay before starting.
+    /// Represents a focus session with an optional warm-up delay before starting.
     /// During warm-up users can cancel to "resist the urge".
     func startFocusSession(minutes: Int, warmUpSeconds: Int = 0) {
         // Cancel any existing session first.
@@ -103,10 +109,10 @@ final class ScreenTimeManager: ObservableObject {
         focusTask = Task { [weak self] in
             guard let self else { return }
 
-            // 1) Apply shields immediately (so taps are blocked while cooling off).
+            // 1) Apply shields immediately (so taps are blocked while warming up).
             self.applyShield()
 
-            // 2) Optional cool-off countdown.
+            // 2) Optional warm-up countdown.
             if warmUp > 0 {
                 await self.countDown(duration: warmUp, phase: .warmUp)
                 if Task.isCancelled { return }
@@ -118,6 +124,9 @@ final class ScreenTimeManager: ObservableObject {
             if Task.isCancelled { return }
             self.clearShield()
             self.focusState = .idle
+
+            // Notify that a focus session completed, with minutes
+            NotificationCenter.default.post(name: .focusSessionCompleted, object: nil, userInfo: ["minutes": totalRunSeconds / 60])
         }
     }
 
@@ -127,6 +136,29 @@ final class ScreenTimeManager: ObservableObject {
         focusTask = nil
         clearShield()
         focusState = .idle
+    }
+
+    // MARK: - Scheduling
+
+    /// Schedule a focus session to start at a future date/time.
+    func scheduleFocusSession(start: Date, minutes: Int, warmUpSeconds: Int) {
+        scheduleTask?.cancel()
+        let delay = max(0, Int(start.timeIntervalSinceNow))
+        scheduledStart = start
+
+        scheduleTask = Task { [weak self] in
+            guard let self else { return }
+            try? await Task.sleep(nanoseconds: UInt64(delay) * 1_000_000_000)
+            if Task.isCancelled { return }
+            self.startFocusSession(minutes: minutes, warmUpSeconds: warmUpSeconds)
+            await MainActor.run { self.scheduledStart = nil }
+        }
+    }
+
+    func cancelScheduledFocus() {
+        scheduleTask?.cancel()
+        scheduleTask = nil
+        scheduledStart = nil
     }
 
     // MARK: - Helpers

@@ -7,8 +7,11 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		318DD9CC2E55992700A578A8 /* BuddyListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 318DD9CB2E55991F00A578A8 /* BuddyListView.swift */; };
+		318DD9CE2E55994700A578A8 /* ChallengeViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 318DD9CD2E55994400A578A8 /* ChallengeViews.swift */; };
+		318DD9D02E559CFA00A578A8 /* Challenges.swift in Sources */ = {isa = PBXBuildFile; fileRef = 318DD9CF2E559CF700A578A8 /* Challenges.swift */; };
+		318DD9D22E559D0D00A578A8 /* BuddyData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 318DD9D12E559D0B00A578A8 /* BuddyData.swift */; };
 		31EBD9442E543B23008FD5AA /* .gitignore in Resources */ = {isa = PBXBuildFile; fileRef = 31EBD9432E543B16008FD5AA /* .gitignore */; };
-		31EBD9462E543DB6008FD5AA /* Untitled.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31EBD9452E543CC5008FD5AA /* Untitled.swift */; };
 		A00000000000000000000011 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000008 /* ContentView.swift */; };
 		A00000000000000000000012 /* BuddyLockApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000007 /* BuddyLockApp.swift */; };
 		A00000000000000000000013 /* ScreenTimeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000009 /* ScreenTimeManager.swift */; };
@@ -16,8 +19,11 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		318DD9CB2E55991F00A578A8 /* BuddyListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuddyListView.swift; sourceTree = "<group>"; };
+		318DD9CD2E55994400A578A8 /* ChallengeViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChallengeViews.swift; sourceTree = "<group>"; };
+		318DD9CF2E559CF700A578A8 /* Challenges.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Challenges.swift; sourceTree = "<group>"; };
+		318DD9D12E559D0B00A578A8 /* BuddyData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuddyData.swift; sourceTree = "<group>"; };
 		31EBD9432E543B16008FD5AA /* .gitignore */ = {isa = PBXFileReference; lastKnownFileType = text; path = .gitignore; sourceTree = "<group>"; };
-		31EBD9452E543CC5008FD5AA /* Untitled.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Untitled.swift; sourceTree = "<group>"; };
 		A00000000000000000000006 /* BuddyLock.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BuddyLock.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A00000000000000000000007 /* BuddyLockApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuddyLockApp.swift; sourceTree = "<group>"; };
 		A00000000000000000000008 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -56,10 +62,13 @@
 		A00000000000000000000005 /* BuddyLock */ = {
 			isa = PBXGroup;
 			children = (
+				318DD9D12E559D0B00A578A8 /* BuddyData.swift */,
+				318DD9CF2E559CF700A578A8 /* Challenges.swift */,
+				318DD9CD2E55994400A578A8 /* ChallengeViews.swift */,
+				318DD9CB2E55991F00A578A8 /* BuddyListView.swift */,
 				A00000000000000000000007 /* BuddyLockApp.swift */,
 				A00000000000000000000008 /* ContentView.swift */,
 				31EBD9432E543B16008FD5AA /* .gitignore */,
-				31EBD9452E543CC5008FD5AA /* Untitled.swift */,
 				A00000000000000000000009 /* ScreenTimeManager.swift */,
 				A0000000000000000000000B /* Assets.xcassets */,
 				A0000000000000000000000C /* Info.plist */,
@@ -138,8 +147,11 @@
 			files = (
 				A00000000000000000000012 /* BuddyLockApp.swift in Sources */,
 				A00000000000000000000011 /* ContentView.swift in Sources */,
-				31EBD9462E543DB6008FD5AA /* Untitled.swift in Sources */,
+				318DD9CC2E55992700A578A8 /* BuddyListView.swift in Sources */,
+				318DD9D22E559D0D00A578A8 /* BuddyData.swift in Sources */,
 				A00000000000000000000013 /* ScreenTimeManager.swift in Sources */,
+				318DD9CE2E55994700A578A8 /* ChallengeViews.swift in Sources */,
+				318DD9D02E559CFA00A578A8 /* Challenges.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

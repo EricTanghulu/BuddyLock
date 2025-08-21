@@ -1,141 +1,196 @@
 
-import Foundation
 import SwiftUI
 
-// MARK: - Models
+struct ChallengeListView: View {
+    @ObservedObject var challenges: ChallengeService
+    @ObservedObject var buddies: BuddyService
 
-struct Buddy: Identifiable, Codable, Hashable {
-    var id: UUID = UUID()
-    var displayName: String
-    var role: BuddyRole = .gatekeeper
-}
+    @State private var showCreate = false
 
-enum BuddyRole: String, CaseIterable, Codable, Identifiable {
-    case gatekeeper, cheerleader, mirror
-
-    var id: String { rawValue }
-    var label: String {
-        switch self {
-        case .gatekeeper: return "Gatekeeper"
-        case .cheerleader: return "Cheerleader"
-        case .mirror: return "Mirror"
+    var body: some View {
+        List {
+            Section {
+                if challenges.challenges.isEmpty {
+                    Text("No challenges yet. Create a head‑to‑head or group challenge to get started.")
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(challenges.challenges) { ch in
+                        NavigationLink {
+                            ChallengeDetailView(challenge: ch, challenges: challenges, buddies: buddies)
+                        } label: {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(ch.title).bold()
+                                Text("\(ch.type.label) • Ends \(ch.endDate.formatted(date: .abbreviated, time: .omitted))")
+                                    .font(.caption).foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                    .onDelete { idx in
+                        idx.map { challenges.challenges[$0] }.forEach(challenges.removeChallenge)
+                    }
+                }
+            }
+        }
+        .navigationTitle("Challenges")
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    showCreate = true
+                } label: {
+                    Label("New", systemImage: "plus.circle.fill")
+                }
+            }
+        }
+        .sheet(isPresented: $showCreate) {
+            ChallengeCreateView(challenges: challenges, buddies: buddies)
         }
     }
 }
 
-enum RequestDecision: String, Codable {
-    case pending, approved, denied
+struct ChallengeCreateView: View {
+    @ObservedObject var challenges: ChallengeService
+    @ObservedObject var buddies: BuddyService
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var type: ChallengeType = .headToHead
+    @State private var title: String = ""
+    @State private var days: Int = 7
+
+    // selections
+    @State private var selectedBuddyForH2H: UUID?
+    @State private var selectedGroupBuddyIDs: Set<UUID> = []
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Details") {
+                    Picker("Type", selection: $type) {
+                        ForEach(ChallengeType.allCases) { t in
+                            Text(t.label).tag(t)
+                        }
+                    }
+                    TextField("Title (optional)", text: $title)
+                    Stepper("Duration: \(days) day(s)", value: $days, in: 1...30)
+                }
+
+                if type == .headToHead {
+                    Section("Pick a buddy") {
+                        if buddies.buddies.isEmpty {
+                            Text("You have no buddies yet. Add one first.")
+                                .foregroundStyle(.secondary)
+                        } else {
+                            Picker("Buddy", selection: $selectedBuddyForH2H) {
+                                ForEach(buddies.buddies) { b in
+                                    Text(b.displayName).tag(Optional(b.id))
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    Section("Pick group members") {
+                        if buddies.buddies.isEmpty {
+                            Text("You have no buddies yet. Add a few first.")
+                                .foregroundStyle(.secondary)
+                        } else {
+                            ForEach(buddies.buddies) { b in
+                                Toggle(b.displayName, isOn: Binding(
+                                    get: { selectedGroupBuddyIDs.contains(b.id) },
+                                    set: { newVal in
+                                        if newVal { selectedGroupBuddyIDs.insert(b.id) }
+                                        else { selectedGroupBuddyIDs.remove(b.id) }
+                                    }
+                                ))
+                            }
+                            Text("You are included automatically.")
+                                .font(.footnote).foregroundStyle(.secondary)
+                        }
+                    }
+                }
+            }
+            .navigationTitle("New Challenge")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Create") {
+                        let t = title.isEmpty ? (type == .headToHead ? "Head-to-Head" : "Group Challenge") : title
+                        if type == .headToHead, let id = selectedBuddyForH2H, let buddy = buddies.buddies.first(where: { $0.id == id }) {
+                            challenges.createHeadToHead(with: buddy, title: t, days: days)
+                            dismiss()
+                        } else if type == .group {
+                            let groupBuddies = buddies.buddies.filter { selectedGroupBuddyIDs.contains($0.id) }
+                            guard !groupBuddies.isEmpty else { return }
+                            challenges.createGroup(with: groupBuddies, title: t, days: days)
+                            dismiss()
+                        }
+                    }
+                    .disabled((type == .headToHead && selectedBuddyForH2H == nil) ||
+                              (type == .group && selectedGroupBuddyIDs.isEmpty))
+                }
+            }
+        }
+    }
 }
 
-struct BuddyApprovalRequest: Identifiable, Codable, Hashable {
-    var id: UUID = UUID()
-    var createdAt: Date = Date()
-    var requesterName: String
-    var buddyID: UUID
-    var minutesRequested: Int
-    var reason: String?
-    var decision: RequestDecision = .pending
-    var approvedMinutes: Int? = nil
-}
+struct ChallengeDetailView: View {
+    let challenge: Challenge
+    @ObservedObject var challenges: ChallengeService
+    @ObservedObject var buddies: BuddyService
 
-// MARK: - LocalBuddyService (demo, no backend)
+    @State private var addMinutesFor: UUID?
+    @State private var minutesToAdd: Int = 5
 
-@MainActor
-final class LocalBuddyService: ObservableObject {
-    @Published var buddies: [Buddy] = []
-    @Published var incoming: [BuddyApprovalRequest] = []
-    @Published var outgoing: [BuddyApprovalRequest] = []
+    var body: some View {
+        List {
+            Section("Standings") {
+                ForEach(sortedParticipants(), id: \.0) { pid, minutes in
+                    HStack {
+                        Text(nameFor(pid))
+                        Spacer()
+                        Text("\(minutes) min").monospacedDigit()
+                    }
+                    .contentShape(Rectangle())
+                    .contextMenu {
+                        Button("Add 5 min") { addMinutes(pid: pid, minutes: 5) }
+                        Button("Add 10 min") { addMinutes(pid: pid, minutes: 10) }
+                    }
+                }
+                Text("Challenge ends \(challenge.endDate.formatted(date: .abbreviated, time: .omitted))")
+                    .font(.footnote).foregroundStyle(.secondary)
+            }
 
-    private let buddiesKey = "BuddyLock.buddies"
-    private let incomingKey = "BuddyLock.requests.incoming"
-    private let outgoingKey = "BuddyLock.requests.outgoing"
-
-    init() {
-        load()
+            Section("Manual Log") {
+                Picker("Participant", selection: $addMinutesFor) {
+                    ForEach(challenge.participantIDs, id: \.self) { pid in
+                        Text(nameFor(pid)).tag(Optional(pid))
+                    }
+                }
+                Stepper("Minutes: \(minutesToAdd)", value: $minutesToAdd, in: 1...180)
+                Button("Add Minutes") {
+                    if let pid = addMinutesFor {
+                        challenges.addManualMinutes(to: challenge.id, participantID: pid, minutes: minutesToAdd)
+                    }
+                }.disabled(addMinutesFor == nil)
+            }
+        }
+        .navigationTitle(challenge.title)
     }
 
-    // Persistence using UserDefaults for demo purposes
-    private func load() {
-        let d = UserDefaults.standard
-        if let data = d.data(forKey: buddiesKey),
-           let items = try? JSONDecoder().decode([Buddy].self, from: data) {
-            buddies = items
-        }
-        if let data = d.data(forKey: incomingKey),
-           let items = try? JSONDecoder().decode([BuddyApprovalRequest].self, from: data) {
-            incoming = items
-        }
-        if let data = d.data(forKey: outgoingKey),
-           let items = try? JSONDecoder().decode([BuddyApprovalRequest].self, from: data) {
-            outgoing = items
-        }
-    }
-
-    private func save() {
-        let d = UserDefaults.standard
-        if let data = try? JSONEncoder().encode(buddies) {
-            d.set(data, forKey: buddiesKey)
-        }
-        if let data = try? JSONEncoder().encode(incoming) {
-            d.set(data, forKey: incomingKey)
-        }
-        if let data = try? JSONEncoder().encode(outgoing) {
-            d.set(data, forKey: outgoingKey)
+    private func sortedParticipants() -> [(UUID, Int)] {
+        let dict = challenge.scores
+        return dict.sorted { lhs, rhs in
+            if lhs.value == rhs.value {
+                return nameFor(lhs.key) < nameFor(rhs.key)
+            }
+            return lhs.value > rhs.value
         }
     }
 
-    func addBuddy(name: String, role: BuddyRole) {
-        guard !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
-        buddies.append(Buddy(displayName: name, role: role))
-        save()
+    private func nameFor(_ pid: UUID) -> String {
+        if pid == challenges.localUserID { return "You" }
+        return buddies.buddies.first(where: { $0.id == pid })?.displayName ?? "Unknown"
     }
 
-    func removeBuddy(_ buddy: Buddy) {
-        buddies.removeAll { $0.id == buddy.id }
-        // Clean up any requests pointing to this buddy
-        incoming.removeAll { $0.buddyID == buddy.id }
-        outgoing.removeAll { $0.buddyID == buddy.id }
-        save()
-    }
-
-    // Send a request to a buddy (demo: we also create an 'incoming' mirror for local approval)
-    @discardableResult
-    func sendUnlockRequest(to buddy: Buddy, requesterName: String, minutes: Int, reason: String?) -> BuddyApprovalRequest {
-        let req = BuddyApprovalRequest(requesterName: requesterName, buddyID: buddy.id, minutesRequested: minutes, reason: reason)
-        outgoing.insert(req, at: 0)
-
-        // Demo: also add to incoming so you can approve on the same device
-        incoming.insert(req, at: 0)
-        save()
-        return req
-    }
-
-    // Approve/deny a request
-    func approve(requestID: UUID, minutes: Int) {
-        updateRequest(id: requestID) { r in
-            r.decision = .approved
-            r.approvedMinutes = minutes
-        }
-    }
-
-    func deny(requestID: UUID) {
-        updateRequest(id: requestID) { r in
-            r.decision = .denied
-            r.approvedMinutes = nil
-        }
-    }
-
-    private func updateRequest(id: UUID, mutate: (inout BuddyApprovalRequest) -> Void) {
-        if let idx = incoming.firstIndex(where: { $0.id == id }) {
-            var r = incoming[idx]
-            mutate(&r)
-            incoming[idx] = r
-        }
-        if let idx = outgoing.firstIndex(where: { $0.id == id }) {
-            var r = outgoing[idx]
-            mutate(&r)
-            outgoing[idx] = r
-        }
-        save()
+    private func addMinutes(pid: UUID, minutes: Int) {
+        challenges.addManualMinutes(to: challenge.id, participantID: pid, minutes: minutes)
     }
 }

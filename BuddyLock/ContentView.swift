@@ -6,24 +6,30 @@ import FamilyControls
 
 struct ContentView: View {
     @EnvironmentObject var screenTime: ScreenTimeManager
+    @StateObject private var buddies = BuddyService()
+    @StateObject private var challenges = ChallengeService()
+    @AppStorage("BuddyLock.didPromptForAuthorization") private var didPromptForAuthorization = false
+
     @State private var showPicker = false
     @State private var focusMinutes: Int = 30
-    // Use 'warmUpSeconds' to match ScreenTimeManager API
     @State private var warmUpSeconds: Int = 0
+    @State private var scheduleEnabled: Bool = false
+    @State private var scheduledStart: Date = Calendar.current.date(byAdding: .minute, value: 15, to: Date()) ?? Date().addingTimeInterval(900)
 
     var body: some View {
         NavigationStack {
             Form {
-                // Authorization
-                Section("Authorization") {
-                    HStack {
-                        Text("Status")
-                        Spacer()
-                        Text(screenTime.authorizationLabel)
-                            .foregroundStyle(screenTime.isAuthorized ? .green : .secondary)
-                    }
-                    Button("Request Screen Time Permission") {
-                        Task { await screenTime.requestAuthorization() }
+                // Authorization section: only when NOT authorized
+                if !screenTime.isAuthorized {
+                    Section {
+                        Text("BuddyLock needs Screen Time permission to shield apps and websites.")
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                        Button("Grant Screen Time Permission") {
+                            Task { await screenTime.requestAuthorization() }
+                        }
+                    } header: {
+                        Text("Permission Required")
                     }
                 }
 
@@ -42,16 +48,16 @@ struct ContentView: View {
                 }
                 #endif
 
-                // Lock Controls
-                Section("Lock Controls") {
-                    Toggle("Activate lock now", isOn: Binding(
+                // Focus & Shield
+                Section("Focus & Shield") {
+                    Toggle("Activate shield now", isOn: Binding(
                         get: { screenTime.isShieldActive },
                         set: { newValue in
                             if newValue { screenTime.applyShield() } else { screenTime.clearShield() }
                         }
                     ))
                     Stepper("Focus length: \(focusMinutes) min", value: $focusMinutes, in: 5...180, step: 5)
-                    Stepper("Warm-up: \(warmUpSeconds) sec", value: $warmUpSeconds, in: 0...30, step: 5)
+                    Stepper("Warm-up: \(warmUpSeconds) sec", value: $warmUpSeconds, in: 0...60, step: 5)
 
                     HStack {
                         if screenTime.focusState.isActive {
@@ -61,11 +67,18 @@ struct ContentView: View {
                                 Label("Stop Focus", systemImage: "stop.circle.fill")
                             }
                         } else {
-                            Button {
-                                // Call the manager API with the correct parameter name
-                                screenTime.startFocusSession(minutes: focusMinutes, warmUpSeconds: warmUpSeconds)
-                            } label: {
-                                Label("Start Focus Session", systemImage: "play.circle.fill")
+                            if scheduleEnabled {
+                                Button {
+                                    screenTime.scheduleFocusSession(start: scheduledStart, minutes: focusMinutes, warmUpSeconds: warmUpSeconds)
+                                } label: {
+                                    Label("Schedule Focus", systemImage: "calendar.badge.clock")
+                                }
+                            } else {
+                                Button {
+                                    screenTime.startFocusSession(minutes: focusMinutes, warmUpSeconds: warmUpSeconds)
+                                } label: {
+                                    Label("Start Focus Now", systemImage: "play.circle.fill")
+                                }
                             }
                         }
 
@@ -77,19 +90,60 @@ struct ContentView: View {
                         }
                     }
 
-                    Text("During a focus session, selected apps & domains are shielded. A warm-up delay helps resist impulses before the session starts.")
+                    Toggle("Schedule for later", isOn: $scheduleEnabled.animation())
+                    if scheduleEnabled {
+                        DatePicker("Start at", selection: $scheduledStart, displayedComponents: [.hourAndMinute, .date])
+                        if let s = screenTime.scheduledStart {
+                            Text("Scheduled for **\(s.formatted(date: .abbreviated, time: .shortened))**")
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                            Button("Cancel Scheduled") {
+                                screenTime.cancelScheduledFocus()
+                            }.tint(.red)
+                        }
+                    }
+
+                    Text("During a focus session, selected apps & domains are shielded. A warm‑up delay helps resist impulses before the session starts.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
 
                 // Next steps
                 Section("Next steps") {
-                    Text("Add the Lock UI Extension to show a custom overlay with “Ask a Friend”, and wire it to temporarily lift shields when a buddy approves.")
+                    Text("Add the Shield UI Extension to display “Ask a Friend” when a blocked app is opened. The extension can defer and post a request to your shared App Group for approval in the main app.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
             }
             .navigationTitle("BuddyLock")
+            .toolbar {
+                ToolbarItemGroup(placement: .topBarTrailing) {
+                    NavigationLink {
+                        ChallengeListView(challenges: challenges, buddies: buddies)
+                    } label: {
+                        Label("View Challenges", systemImage: "flag.2.crossed")
+                    }
+
+                    NavigationLink {
+                        BuddyListView(service: buddies)
+                    } label: {
+                        Label("Add Buddies", systemImage: "person.badge.plus")
+                    }
+                }
+            }
+        }
+        // First‑run auto‑prompt
+        .task {
+            if !didPromptForAuthorization && !screenTime.isAuthorized {
+                didPromptForAuthorization = true
+                await screenTime.requestAuthorization()
+            }
+        }
+        // When a focus session completes, add minutes for the local user
+        .onReceive(NotificationCenter.default.publisher(for: .focusSessionCompleted)) { note in
+            if let minutes = note.userInfo?["minutes"] as? Int {
+                challenges.recordLocalFocus(minutes: minutes)
+            }
         }
     }
 }
