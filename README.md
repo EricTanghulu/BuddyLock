@@ -1,86 +1,64 @@
-# BuddyLock (iOS, SwiftUI)
+# BuddyLock
 
-**BuddyLock** is an iOS app designed to help people reclaim focus by combining **screen-time limits** with **friend accountability**. Instead of managing digital wellbeing alone, BuddyLock brings in your accountability circle to keep you motivated and on track.
+BuddyLock is an iOS app prototype built with SwiftUI, FamilyControls, and ManagedSettings. It helps you **limit screen time** and adds a social accountability layer by letting your friends act as buddies. Buddies can approve unlock requests, compete in challenges, and keep you accountable.
 
 ---
 
 ## ✨ Features
 
-- **Screen Time Integration**  
-  Built on Apple’s iOS 16+ Screen Time APIs (Family Controls, Managed Settings, Device Activity).
+- **Focus Sessions**  
+  - Shield selected apps, categories, and domains.  
+  - Warm-up timer to resist impulses before the session starts.  
+  - Schedule sessions for later.  
+  - Auto-log completed focus minutes into challenges.
 
-- **Family Activity Picker**  
-  Select apps, categories, and websites to shield with a few taps.
+- **Buddy System**  
+  - Add buddies and manage them from the **Settings (gear icon)**.  
+  - Send unlock requests via **Ask Buddy**.  
+  - Approve or deny requests via **Approvals**.  
+  - Approvals can be for *all apps* or for a **specific app only**.  
+  - Temporary exceptions automatically expire and shields re-apply.
 
-- **Shields & Focus Sessions**  
-  Instantly block distracting apps or set a time-boxed focus period that ends automatically.
+- **Challenges**  
+  - Create **Head-to-Head** or **Group** challenges.  
+  - Track standings by total focus minutes.  
+  - Manual logging supported for corrections.  
+  - Leaderboards auto-update as focus sessions complete.
 
-- **Customizable Shield UI**  
-  Sample extension that can show “Ask a Friend” when you attempt to open a blocked app.
+- **Settings/Profile**  
+  - Manage display name.  
+  - Manage buddies.  
+  - Future preferences and profile options live here.
 
-- **Device Activity Monitoring**  
-  Example extension for scheduling recurring app limits and reporting usage.
+---
 
-- **Buddy Approval Stub**  
-  Protocol placeholder for integrating CloudKit, Firebase, or another backend to enable real-time friend approvals.
+## 🛠️ Tech Overview
+
+- **SwiftUI** for the main UI  
+- **FamilyControls + ManagedSettings** for app/web shielding  
+- **UserDefaults** for local persistence of buddies, requests, and challenges  
+- **Local prototype only** — no cloud sync yet (CloudKit can be added later)
 
 ---
 
 ## 🚀 Getting Started
 
-### Prerequisites
-- macOS with **Xcode 15+**
-- iOS device or simulator running **iOS 16+**
-- An Apple Developer Account (required for Family Controls capability)
-
-### Installation
-```bash
-git clone https://github.com/<your-username>/BuddyLock.git
-cd BuddyLock
-open BuddyLock.xcodeproj
-```
-
-### Setup in Xcode
-1. Open the **BuddyLock** project in Xcode.
-2. Enable **Signing & Capabilities**:
-   - Add **Family Controls**
-   - Add **App Groups** (e.g., `group.com.yourcompany.buddylock`)
-3. Build & run on a simulator or device.
-4. Tap **Request Screen Time Permission** inside the app.
-5. Use the **Family Activity Picker** to choose apps/categories.
-6. Toggle **Activate shield now** or start a **Focus Session**.
+1. Clone this repo.  
+2. Open in **Xcode 15+**.  
+3. Run on an iOS 16+ device or simulator.  
+4. First launch will prompt for **Screen Time (FamilyControls)** authorization.  
 
 ---
 
-## 📂 Project Structure
+## 📌 Roadmap
 
-- `BuddyLockApp.swift` — App entry point  
-- `ContentView.swift` — Main UI for managing shields & sessions  
-- `ScreenTimeManager.swift` — Core logic for authorization and shielding  
-- `Extensions/ShieldUIExtensionSample.swift` — Sample custom overlay  
-- `Extensions/DeviceActivityMonitorExtension/MonitorSample.swift` — Example monitor extension  
-- `Services/BuddyApprovalService.swift` — Protocol for future buddy integrations  
+- [ ] CloudKit support for syncing buddies and challenges across devices  
+- [ ] Richer challenge stats (streaks, best sessions, win history)  
+- [ ] Motivational nudges and reminders  
+- [ ] Improved app name resolution for requests  
 
 ---
 
-## 🛠 Roadmap
+## ⚠️ Disclaimer
 
-- 🔗 Backend for **real-time friend approvals**  
-- 📲 Push notifications for unlock requests  
-- 👥 Group challenges & focus rooms  
-- 💻 Cross-device sync and analytics  
-
----
-
-## 🤝 Contributing
-
-Contributions are welcome!  
-- Fork the repo and create a feature branch.  
-- Submit a pull request with a clear description.  
-- For major changes, please open an issue first to discuss.  
-
----
-
-## 📜 License
-
-This project is licensed under the MIT License
+This is a **prototype** intended for experimentation. It currently uses **local storage only**, meaning buddies, requests, and challenges exist only on the same device.
