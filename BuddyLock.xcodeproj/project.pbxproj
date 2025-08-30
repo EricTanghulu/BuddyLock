@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0C13562A2E62834700012F23 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C1356292E62834000012F23 /* HomeView.swift */; };
 		318DD9CC2E55992700A578A8 /* BuddyListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 318DD9CB2E55991F00A578A8 /* BuddyListView.swift */; };
 		318DD9CE2E55994700A578A8 /* ChallengeViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 318DD9CD2E55994400A578A8 /* ChallengeViews.swift */; };
 		318DD9D02E559CFA00A578A8 /* Challenges.swift in Sources */ = {isa = PBXBuildFile; fileRef = 318DD9CF2E559CF700A578A8 /* Challenges.swift */; };
@@ -19,6 +20,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		0C1356292E62834000012F23 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		318DD9CB2E55991F00A578A8 /* BuddyListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuddyListView.swift; sourceTree = "<group>"; };
 		318DD9CD2E55994400A578A8 /* ChallengeViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChallengeViews.swift; sourceTree = "<group>"; };
 		318DD9CF2E559CF700A578A8 /* Challenges.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Challenges.swift; sourceTree = "<group>"; };
@@ -68,6 +70,7 @@
 				318DD9CB2E55991F00A578A8 /* BuddyListView.swift */,
 				A00000000000000000000007 /* BuddyLockApp.swift */,
 				A00000000000000000000008 /* ContentView.swift */,
+				0C1356292E62834000012F23 /* HomeView.swift */,
 				31EBD9432E543B16008FD5AA /* .gitignore */,
 				A00000000000000000000009 /* ScreenTimeManager.swift */,
 				A0000000000000000000000B /* Assets.xcassets */,
@@ -150,6 +153,7 @@
 				318DD9CC2E55992700A578A8 /* BuddyListView.swift in Sources */,
 				318DD9D22E559D0D00A578A8 /* BuddyData.swift in Sources */,
 				A00000000000000000000013 /* ScreenTimeManager.swift in Sources */,
+				0C13562A2E62834700012F23 /* HomeView.swift in Sources */,
 				318DD9CE2E55994700A578A8 /* ChallengeViews.swift in Sources */,
 				318DD9D02E559CFA00A578A8 /* Challenges.swift in Sources */,
 			);

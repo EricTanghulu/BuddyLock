@@ -20,6 +20,7 @@ final class BuddyService: ObservableObject {
             buddies = []
             save()
         }
+        
     }
 
     func addBuddy(name: String) {
