@@ -7,11 +7,15 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		0C13562A2E62834700012F23 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C1356292E62834000012F23 /* HomeView.swift */; };
+		311CCA7F2E59822300E4E9B1 /* ApprovalsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 311CCA7E2E59822000E4E9B1 /* ApprovalsView.swift */; };
+		311CCA812E59823500E4E9B1 /* AskBuddyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 311CCA802E59823300E4E9B1 /* AskBuddyView.swift */; };
+		311CCA832E59825300E4E9B1 /* LocalUnlockRequestService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 311CCA822E59824F00E4E9B1 /* LocalUnlockRequestService.swift */; };
+		311CCA862E59827800E4E9B1 /* LocalBuddyService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 311CCA852E59827200E4E9B1 /* LocalBuddyService.swift */; };
+		311CCA872E59846700E4E9B1 /* BuddyData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 318DD9D12E559D0B00A578A8 /* BuddyData.swift */; };
+		311CCA892E598C7500E4E9B1 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 311CCA882E598C7300E4E9B1 /* SettingsView.swift */; };
 		318DD9CC2E55992700A578A8 /* BuddyListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 318DD9CB2E55991F00A578A8 /* BuddyListView.swift */; };
 		318DD9CE2E55994700A578A8 /* ChallengeViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 318DD9CD2E55994400A578A8 /* ChallengeViews.swift */; };
 		318DD9D02E559CFA00A578A8 /* Challenges.swift in Sources */ = {isa = PBXBuildFile; fileRef = 318DD9CF2E559CF700A578A8 /* Challenges.swift */; };
-		318DD9D22E559D0D00A578A8 /* BuddyData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 318DD9D12E559D0B00A578A8 /* BuddyData.swift */; };
 		31EBD9442E543B23008FD5AA /* .gitignore in Resources */ = {isa = PBXBuildFile; fileRef = 31EBD9432E543B16008FD5AA /* .gitignore */; };
 		A00000000000000000000011 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000008 /* ContentView.swift */; };
 		A00000000000000000000012 /* BuddyLockApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000007 /* BuddyLockApp.swift */; };
@@ -20,7 +24,11 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		0C1356292E62834000012F23 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
+		311CCA7E2E59822000E4E9B1 /* ApprovalsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApprovalsView.swift; sourceTree = "<group>"; };
+		311CCA802E59823300E4E9B1 /* AskBuddyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AskBuddyView.swift; sourceTree = "<group>"; };
+		311CCA822E59824F00E4E9B1 /* LocalUnlockRequestService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalUnlockRequestService.swift; sourceTree = "<group>"; };
+		311CCA852E59827200E4E9B1 /* LocalBuddyService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalBuddyService.swift; sourceTree = "<group>"; };
+		311CCA882E598C7300E4E9B1 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		318DD9CB2E55991F00A578A8 /* BuddyListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuddyListView.swift; sourceTree = "<group>"; };
 		318DD9CD2E55994400A578A8 /* ChallengeViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChallengeViews.swift; sourceTree = "<group>"; };
 		318DD9CF2E559CF700A578A8 /* Challenges.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Challenges.swift; sourceTree = "<group>"; };
@@ -64,13 +72,17 @@
 		A00000000000000000000005 /* BuddyLock */ = {
 			isa = PBXGroup;
 			children = (
+				311CCA882E598C7300E4E9B1 /* SettingsView.swift */,
+				311CCA852E59827200E4E9B1 /* LocalBuddyService.swift */,
+				311CCA822E59824F00E4E9B1 /* LocalUnlockRequestService.swift */,
+				311CCA802E59823300E4E9B1 /* AskBuddyView.swift */,
+				311CCA7E2E59822000E4E9B1 /* ApprovalsView.swift */,
 				318DD9D12E559D0B00A578A8 /* BuddyData.swift */,
 				318DD9CF2E559CF700A578A8 /* Challenges.swift */,
 				318DD9CD2E55994400A578A8 /* ChallengeViews.swift */,
 				318DD9CB2E55991F00A578A8 /* BuddyListView.swift */,
 				A00000000000000000000007 /* BuddyLockApp.swift */,
 				A00000000000000000000008 /* ContentView.swift */,
-				0C1356292E62834000012F23 /* HomeView.swift */,
 				31EBD9432E543B16008FD5AA /* .gitignore */,
 				A00000000000000000000009 /* ScreenTimeManager.swift */,
 				A0000000000000000000000B /* Assets.xcassets */,
@@ -149,11 +161,15 @@
 			buildActionMask = 2147483647;
 			files = (
 				A00000000000000000000012 /* BuddyLockApp.swift in Sources */,
+				311CCA862E59827800E4E9B1 /* LocalBuddyService.swift in Sources */,
+				311CCA812E59823500E4E9B1 /* AskBuddyView.swift in Sources */,
+				311CCA7F2E59822300E4E9B1 /* ApprovalsView.swift in Sources */,
+				311CCA872E59846700E4E9B1 /* BuddyData.swift in Sources */,
 				A00000000000000000000011 /* ContentView.swift in Sources */,
 				318DD9CC2E55992700A578A8 /* BuddyListView.swift in Sources */,
-				318DD9D22E559D0D00A578A8 /* BuddyData.swift in Sources */,
+				311CCA832E59825300E4E9B1 /* LocalUnlockRequestService.swift in Sources */,
 				A00000000000000000000013 /* ScreenTimeManager.swift in Sources */,
-				0C13562A2E62834700012F23 /* HomeView.swift in Sources */,
+				311CCA892E598C7500E4E9B1 /* SettingsView.swift in Sources */,
 				318DD9CE2E55994700A578A8 /* ChallengeViews.swift in Sources */,
 				318DD9D02E559CFA00A578A8 /* Challenges.swift in Sources */,
 			);
@@ -267,6 +283,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = SA3M3BN49A;
 				GCC_OPTIMIZATION_LEVEL = 0;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = BuddyLock/Info.plist;
@@ -291,6 +308,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = SA3M3BN49A;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = BuddyLock/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;

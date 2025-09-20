@@ -1,15 +1,20 @@
 import SwiftUI
-
 #if canImport(FamilyControls)
 import FamilyControls
 #endif
 
 struct ContentView: View {
     @EnvironmentObject var screenTime: ScreenTimeManager
-    @StateObject private var buddies = BuddyService()
-    @StateObject private var challenges = ChallengeService()
+
+    // Services shared across child views
+    @StateObject private var buddyService = LocalBuddyService()
+    @StateObject private var requestService = LocalUnlockRequestService()
+    @StateObject private var challengesService = ChallengeService()
+
+    // First-run permission prompt flag
     @AppStorage("BuddyLock.didPromptForAuthorization") private var didPromptForAuthorization = false
 
+    // UI state
     @State private var showPicker = false
     @State private var focusMinutes: Int = 30
     @State private var warmUpSeconds: Int = 0
@@ -19,7 +24,7 @@ struct ContentView: View {
     var body: some View {
         NavigationStack {
             Form {
-                // Authorization section: only when NOT authorized
+                // Permission only when NOT authorized
                 if !screenTime.isAuthorized {
                     Section {
                         Text("BuddyLock needs Screen Time permission to shield apps and websites.")
@@ -33,7 +38,7 @@ struct ContentView: View {
                     }
                 }
 
-                // Selection
+                // Choose apps & categories to limit
                 #if canImport(FamilyControls)
                 Section("Choose apps & categories to limit") {
                     Button("Open Family Activity Picker") { showPicker = true }
@@ -48,7 +53,7 @@ struct ContentView: View {
                 }
                 #endif
 
-                // Focus & Shield
+                // Focus & Shield controls
                 Section("Focus & Shield") {
                     Toggle("Activate shield now", isOn: Binding(
                         get: { screenTime.isShieldActive },
@@ -103,46 +108,65 @@ struct ContentView: View {
                         }
                     }
 
-                    Text("During a focus session, selected apps & domains are shielded. A warm‑up delay helps resist impulses before the session starts.")
+                    Text("During a focus session, selected apps & domains are shielded. A warm-up delay helps resist impulses before the session starts.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
 
-                // Next steps
+                // Info
                 Section("Next steps") {
-                    Text("Add the Shield UI Extension to display “Ask a Friend” when a blocked app is opened. The extension can defer and post a request to your shared App Group for approval in the main app.")
+                    Text("Use the toolbar to send unlock requests, approve/deny, and view challenges. Manage buddies from Settings (gear in the top-left).")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
             }
             .navigationTitle("BuddyLock")
             .toolbar {
+                // NEW: top-left gear for Settings/Profile
+                ToolbarItem(placement: .topBarLeading) {
+                    NavigationLink {
+                        SettingsView(buddyService: buddyService)
+                    } label: {
+                        Label("Settings", systemImage: "gearshape")
+                    }
+                }
+
+                // Existing top-right actions
                 ToolbarItemGroup(placement: .topBarTrailing) {
                     NavigationLink {
-                        ChallengeListView(challenges: challenges, buddies: buddies)
+                        AskBuddyView(buddyService: buddyService, requestService: requestService)
+                            .environmentObject(screenTime)
                     } label: {
-                        Label("View Challenges", systemImage: "flag.2.crossed")
+                        Label("Ask Buddy", systemImage: "paperplane.fill")
                     }
-
                     NavigationLink {
-                        BuddyListView(service: buddies)
+                        ApprovalsView(buddyService: buddyService, requestService: requestService) { minutes in
+                            // Fallback for general approve path (no specific app requested)
+                            screenTime.grantTemporaryException(minutes: minutes)
+                        }
+                        .environmentObject(screenTime)
                     } label: {
-                        Label("Add Buddies", systemImage: "person.badge.plus")
+                        Label("Approvals", systemImage: "checkmark.seal")
+                    }
+                    NavigationLink {
+                        ChallengeListView(challenges: challengesService, buddies: buddyService)
+                    } label: {
+                        Label("Challenges", systemImage: "trophy.fill")
                     }
                 }
             }
         }
-        // First‑run auto‑prompt
+        // First-run auto-prompt for permission
         .task {
             if !didPromptForAuthorization && !screenTime.isAuthorized {
                 didPromptForAuthorization = true
                 await screenTime.requestAuthorization()
             }
         }
-        // When a focus session completes, add minutes for the local user
+        // Auto-award focus session minutes to challenges
         .onReceive(NotificationCenter.default.publisher(for: .focusSessionCompleted)) { note in
             if let minutes = note.userInfo?["minutes"] as? Int {
-                challenges.recordLocalFocus(minutes: minutes)
+                challengesService.recordLocalFocus(minutes: minutes)
             }
         }
     }

@@ -1,9 +1,8 @@
-
 import SwiftUI
 
 struct ChallengeListView: View {
     @ObservedObject var challenges: ChallengeService
-    @ObservedObject var buddies: BuddyService
+    @ObservedObject var buddies: LocalBuddyService
 
     @State private var showCreate = false
 
@@ -11,7 +10,7 @@ struct ChallengeListView: View {
         List {
             Section {
                 if challenges.challenges.isEmpty {
-                    Text("No challenges yet. Create a head‑to‑head or group challenge to get started.")
+                    Text("No challenges yet. Create a head-to-head or group challenge to get started.")
                         .foregroundStyle(.secondary)
                 } else {
                     ForEach(challenges.challenges) { ch in
@@ -49,7 +48,7 @@ struct ChallengeListView: View {
 
 struct ChallengeCreateView: View {
     @ObservedObject var challenges: ChallengeService
-    @ObservedObject var buddies: BuddyService
+    @ObservedObject var buddies: LocalBuddyService
 
     @Environment(\.dismiss) private var dismiss
     @State private var type: ChallengeType = .headToHead
@@ -113,7 +112,9 @@ struct ChallengeCreateView: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Create") {
                         let t = title.isEmpty ? (type == .headToHead ? "Head-to-Head" : "Group Challenge") : title
-                        if type == .headToHead, let id = selectedBuddyForH2H, let buddy = buddies.buddies.first(where: { $0.id == id }) {
+                        if type == .headToHead,
+                           let id = selectedBuddyForH2H,
+                           let buddy = buddies.buddies.first(where: { $0.id == id }) {
                             challenges.createHeadToHead(with: buddy, title: t, days: days)
                             dismiss()
                         } else if type == .group {
@@ -134,7 +135,7 @@ struct ChallengeCreateView: View {
 struct ChallengeDetailView: View {
     let challenge: Challenge
     @ObservedObject var challenges: ChallengeService
-    @ObservedObject var buddies: BuddyService
+    @ObservedObject var buddies: LocalBuddyService
 
     @State private var addMinutesFor: UUID?
     @State private var minutesToAdd: Int = 5

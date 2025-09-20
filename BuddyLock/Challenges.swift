@@ -1,4 +1,3 @@
-
 import Foundation
 
 // MARK: - Challenge Models
@@ -47,23 +46,29 @@ final class ChallengeService: ObservableObject {
     }
 
     // Create a head-to-head challenge between local user and exactly one buddy
-    func createHeadToHead(with buddy: Buddy, title: String = "Head-to-Head", days: Int = 7) {
-        var c = Challenge(title: title, type: .headToHead,
-                          participantIDs: [localUserID, buddy.id],
-                          startDate: Date(),
-                          endDate: Calendar.current.date(byAdding: .day, value: days, to: Date()) ?? Date().addingTimeInterval(Double(days) * 86400))
+    func createHeadToHead(with buddy: LocalBuddy, title: String = "Head-to-Head", days: Int = 7) {
+        var c = Challenge(
+            title: title,
+            type: .headToHead,
+            participantIDs: [localUserID, buddy.id],
+            startDate: Date(),
+            endDate: Calendar.current.date(byAdding: .day, value: days, to: Date()) ?? Date().addingTimeInterval(Double(days) * 86400)
+        )
         c.scores = [localUserID: 0, buddy.id: 0]
         challenges.insert(c, at: 0)
         save()
     }
 
     // Create a group challenge with multiple buddies (+ local user auto-included)
-    func createGroup(with buddies: [Buddy], title: String = "Group Challenge", days: Int = 7) {
+    func createGroup(with buddies: [LocalBuddy], title: String = "Group Challenge", days: Int = 7) {
         let ids = [localUserID] + buddies.map { $0.id }
-        var c = Challenge(title: title, type: .group,
-                          participantIDs: ids,
-                          startDate: Date(),
-                          endDate: Calendar.current.date(byAdding: .day, value: days, to: Date()) ?? Date().addingTimeInterval(Double(days) * 86400))
+        var c = Challenge(
+            title: title,
+            type: .group,
+            participantIDs: ids,
+            startDate: Date(),
+            endDate: Calendar.current.date(byAdding: .day, value: days, to: Date()) ?? Date().addingTimeInterval(Double(days) * 86400)
+        )
         c.scores = Dictionary(uniqueKeysWithValues: ids.map { ($0, 0) })
         challenges.insert(c, at: 0)
         save()
@@ -75,7 +80,9 @@ final class ChallengeService: ObservableObject {
         var changed = false
         let now = Date()
         for i in challenges.indices {
-            if challenges[i].participantIDs.contains(participantID) && now >= challenges[i].startDate && now <= challenges[i].endDate {
+            if challenges[i].participantIDs.contains(participantID),
+               now >= challenges[i].startDate,
+               now <= challenges[i].endDate {
                 challenges[i].scores[participantID, default: 0] += minutes
                 changed = true
             }

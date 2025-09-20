@@ -1,4 +1,3 @@
-
 import Foundation
 import SwiftUI
 
@@ -10,9 +9,7 @@ import ManagedSettings
 import FamilyControls
 #endif
 
-extension Notification.Name {
-    static let focusSessionCompleted = Notification.Name("BuddyLock.FocusSessionCompleted")
-}
+// MARK: - ScreenTime Manager
 
 @MainActor
 final class ScreenTimeManager: ObservableObject {
@@ -26,9 +23,11 @@ final class ScreenTimeManager: ObservableObject {
     @Published var selection: FamilyActivitySelection = .init()
     #endif
 
-    // MARK: - Private
+    // MARK: - Private tasks
     private var focusTask: Task<Void, Never>?
     private var scheduleTask: Task<Void, Never>?
+    // Cancelable task for temporary exceptions granted by buddies (either general or per-app)
+    private var exceptionTask: Task<Void, Never>?
 
     var authorizationLabel: String { isAuthorized ? "Authorized" : "Not authorized" }
 
@@ -71,10 +70,10 @@ final class ScreenTimeManager: ObservableObject {
         // Apps (direct set; nil removes any app shields)
         store.shield.applications = selection.applicationTokens.isEmpty ? nil : selection.applicationTokens
 
-        // App/activity categories (uses ShieldSettings)
+        // App/activity categories
         store.shield.applicationCategories = .specific(selection.categoryTokens)
 
-        // Web domains (direct set; NOT .specific)
+        // Web domains (direct set)
         store.shield.webDomains = selection.webDomainTokens.isEmpty ? nil : selection.webDomainTokens
 
         isShieldActive = true
@@ -95,10 +94,59 @@ final class ScreenTimeManager: ObservableObject {
         isShieldActive = false
     }
 
+    // MARK: - Temporary exceptions (Ask-a-Buddy)
+
+    /// General exception: temporarily lift all shields, then re-apply if needed.
+    func grantTemporaryException(minutes: Int) {
+        exceptionTask?.cancel()
+
+        let seconds = max(0, minutes) * 60
+        let wasActive = isShieldActive
+
+        // Lift shields now
+        clearShield()
+
+        // Re-apply after the window if appropriate
+        exceptionTask = Task { [weak self] in
+            guard let self else { return }
+            try? await Task.sleep(nanoseconds: UInt64(seconds) * 1_000_000_000)
+            if Task.isCancelled { return }
+            if self.focusState.isActive || wasActive {
+                self.applyShield()
+            }
+        }
+    }
+
+    /// Per-app exception: keep shields ON, but **remove** the approved apps from the shield list for `minutes`.
+    /// This avoids using APIs that aren't present in your SDK.
+    #if canImport(ManagedSettings) && canImport(FamilyControls)
+    func grantTemporaryException(forApps apps: Set<ApplicationToken>, minutes: Int) {
+        exceptionTask?.cancel()
+
+        // Compute a temporary app shield set that excludes the approved apps.
+        let temporarilyShieldedApps = selection.applicationTokens.subtracting(apps)
+
+        // Apply the adjusted shield state
+        let store = ManagedSettingsStore()
+        store.shield.applications = temporarilyShieldedApps.isEmpty ? nil : temporarilyShieldedApps
+        store.shield.applicationCategories = .specific(selection.categoryTokens)
+        store.shield.webDomains = selection.webDomainTokens.isEmpty ? nil : selection.webDomainTokens
+        isShieldActive = true
+
+        // After the window, restore the full shields from the selection
+        exceptionTask = Task { [weak self] in
+            guard let self else { return }
+            let seconds = max(0, minutes) * 60
+            try? await Task.sleep(nanoseconds: UInt64(seconds) * 1_000_000_000)
+            if Task.isCancelled { return }
+            self.applyShield()
+        }
+    }
+    #endif
+
     // MARK: - Focus Sessions (warm-up + countdown)
 
-    /// Represents a focus session with an optional warm-up delay before starting.
-    /// During warm-up users can cancel to "resist the urge".
+    /// Start a focus session with an optional warm-up delay before starting.
     func startFocusSession(minutes: Int, warmUpSeconds: Int = 0) {
         // Cancel any existing session first.
         cancelFocusSession()
@@ -125,8 +173,12 @@ final class ScreenTimeManager: ObservableObject {
             self.clearShield()
             self.focusState = .idle
 
-            // Notify that a focus session completed, with minutes
-            NotificationCenter.default.post(name: .focusSessionCompleted, object: nil, userInfo: ["minutes": totalRunSeconds / 60])
+            // Notify that a focus session completed, with minutes (for challenges, etc.)
+            NotificationCenter.default.post(
+                name: .focusSessionCompleted,
+                object: nil,
+                userInfo: ["minutes": totalRunSeconds / 60]
+            )
         }
     }
 
@@ -184,6 +236,15 @@ final class ScreenTimeManager: ObservableObject {
             }
         }
     }
+
+    // Provide simple, stable app names for pickers/matching even without a resolver API
+    #if canImport(FamilyControls)
+    func resolvedAppNames() -> [(token: ApplicationToken, name: String)] {
+        let tokens = Array(selection.applicationTokens)
+        // Since some SDKs don't expose a name resolver, use a stable fallback.
+        return tokens.enumerated().map { (idx, t) in (t, "App \(idx + 1)") }
+    }
+    #endif
 }
 
 // MARK: - Focus Session State
@@ -216,6 +277,12 @@ enum FocusSessionState: Equatable {
 enum FocusSessionPhase: Equatable {
     case warmUp
     case running
+}
+
+// MARK: - Notifications
+
+extension Notification.Name {
+    static let focusSessionCompleted = Notification.Name("BuddyLock.FocusSessionCompleted")
 }
 
 #if canImport(FamilyControls)

@@ -1,8 +1,7 @@
-
 import SwiftUI
 
 struct BuddyListView: View {
-    @ObservedObject var service: BuddyService
+    @ObservedObject var service: LocalBuddyService
     @State private var newName: String = ""
 
     var body: some View {
@@ -18,8 +17,9 @@ struct BuddyListView: View {
                     }
                     .disabled(newName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
-                Text("Buddies you add here can be used in head‑to‑head or group challenges.")
-                    .font(.footnote).foregroundStyle(.secondary)
+                Text("Buddies you add here can approve short exceptions (demo) and join challenges later.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
             }
 
             Section("Your Buddies") {
