@@ -19,6 +19,7 @@ struct HomeView: View {
                     Text("No buddies yet!")
                         .foregroundColor(.gray)
                 } else {
+                    Text("Buddies")
                     List(buddies.buddies, id: \.id) { buddy in
                         Text(buddy.displayName)
                     }
@@ -38,7 +39,13 @@ struct HomeView: View {
             }
             .padding()
             .navigationTitle("Home")
-            
         }
+    }
+}
+
+struct HomeView_Previews: PreviewProvider {
+    static var previews: some View {
+        HomeView()
+            .environmentObject(ScreenTimeManager()) // if your view needs env objects
     }
 }
