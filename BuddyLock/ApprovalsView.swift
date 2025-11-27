@@ -59,18 +59,6 @@ struct ApprovalsView: View {
                     }
                 }
             }
-
-            // 👇 New: Manage Buddies section lives here (not in top bar)
-            Section("Buddies") {
-                NavigationLink {
-                    BuddyListView(service: buddyService)
-                } label: {
-                    Label("Manage Buddies", systemImage: "person.badge.plus")
-                }
-                Text("Add or remove buddies. Buddies can approve unlock requests and join challenges.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-            }
         }
         .navigationTitle("Approvals")
         .toolbar {

@@ -1,13 +1,12 @@
-
 import SwiftUI
 
 @main
-struct BuddyLockStarterApp: App {
+struct BuddyLockApp: App {
     @StateObject private var screenTime = ScreenTimeManager()
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            MainTabView()            // 👈 NEW ROOT VIEW
                 .environmentObject(screenTime)
         }
     }
