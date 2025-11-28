@@ -3,7 +3,7 @@ import SwiftUI
 import FamilyControls
 #endif
 
-struct FocusView: View {
+struct HomeView: View {
     @EnvironmentObject var screenTime: ScreenTimeManager
     @ObservedObject var challengesService: ChallengeService
 
@@ -164,7 +164,7 @@ struct FocusView: View {
 #Preview {
     let challenges = ChallengeService()
     return NavigationStack {
-        FocusView(challengesService: challenges)
+        HomeView(challengesService: challenges)
     }
     .environmentObject(ScreenTimeManager())
 }

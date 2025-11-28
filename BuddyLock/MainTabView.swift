@@ -11,7 +11,7 @@ struct MainTabView: View {
         TabView {
             // 1) HOME / FOCUS TAB
             NavigationStack {
-                FocusView(challengesService: challengesService)
+                HomeView(challengesService: challengesService)
             }
             .tabItem {
                 Image(systemName: "house.fill")
