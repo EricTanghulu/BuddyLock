@@ -18,6 +18,7 @@
 		316451EB2ED918F300CECA7D /* CreateTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 316451EA2ED918F300CECA7D /* CreateTabView.swift */; };
 		316451ED2ED9191200CECA7D /* FriendsHubView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 316451EC2ED9191200CECA7D /* FriendsHubView.swift */; };
 		316451EF2ED9193800CECA7D /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 316451EE2ED9193800CECA7D /* ProfileView.swift */; };
+		316451F92ED97CF100CECA7D /* CreateMomentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 316451F82ED97CF100CECA7D /* CreateMomentView.swift */; };
 		318DD9CC2E55992700A578A8 /* BuddyListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 318DD9CB2E55991F00A578A8 /* BuddyListView.swift */; };
 		318DD9CE2E55994700A578A8 /* ChallengeViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 318DD9CD2E55994400A578A8 /* ChallengeViews.swift */; };
 		318DD9D02E559CFA00A578A8 /* Challenges.swift in Sources */ = {isa = PBXBuildFile; fileRef = 318DD9CF2E559CF700A578A8 /* Challenges.swift */; };
@@ -39,6 +40,7 @@
 		316451EA2ED918F300CECA7D /* CreateTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateTabView.swift; sourceTree = "<group>"; };
 		316451EC2ED9191200CECA7D /* FriendsHubView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FriendsHubView.swift; sourceTree = "<group>"; };
 		316451EE2ED9193800CECA7D /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
+		316451F82ED97CF100CECA7D /* CreateMomentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateMomentView.swift; sourceTree = "<group>"; };
 		318DD9CB2E55991F00A578A8 /* BuddyListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuddyListView.swift; sourceTree = "<group>"; };
 		318DD9CD2E55994400A578A8 /* ChallengeViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChallengeViews.swift; sourceTree = "<group>"; };
 		318DD9CF2E559CF700A578A8 /* Challenges.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Challenges.swift; sourceTree = "<group>"; };
@@ -82,6 +84,7 @@
 		A00000000000000000000005 /* BuddyLock */ = {
 			isa = PBXGroup;
 			children = (
+				316451F82ED97CF100CECA7D /* CreateMomentView.swift */,
 				316451EE2ED9193800CECA7D /* ProfileView.swift */,
 				316451EC2ED9191200CECA7D /* FriendsHubView.swift */,
 				316451EA2ED918F300CECA7D /* CreateTabView.swift */,
@@ -182,6 +185,7 @@
 				311CCA812E59823500E4E9B1 /* AskBuddyView.swift in Sources */,
 				316451ED2ED9191200CECA7D /* FriendsHubView.swift in Sources */,
 				311CCA7F2E59822300E4E9B1 /* ApprovalsView.swift in Sources */,
+				316451F92ED97CF100CECA7D /* CreateMomentView.swift in Sources */,
 				311CCA872E59846700E4E9B1 /* BuddyData.swift in Sources */,
 				A00000000000000000000011 /* ContentView.swift in Sources */,
 				318DD9CC2E55992700A578A8 /* BuddyListView.swift in Sources */,
@@ -245,7 +249,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				MTLLINKER_FLAGS = "";
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
@@ -295,7 +299,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				MTLLINKER_FLAGS = "";
 				SDKROOT = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;
@@ -312,7 +316,7 @@
 				GCC_OPTIMIZATION_LEVEL = 0;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = BuddyLock/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -335,7 +339,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = BuddyLock/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",

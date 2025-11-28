@@ -161,8 +161,8 @@ private enum ChallengeFormat: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .duel:  return "Duel with a buddy"
-        case .group: return "Group with multiple buddies"
+        case .duel:  return "Duel"
+        case .group: return "Group Challenge"
         }
     }
 }
@@ -216,9 +216,6 @@ struct ChallengeCreateView: View {
         }
         .navigationTitle("New Challenge")
         .toolbar {
-            ToolbarItem(placement: .cancellationAction) {
-                Button("Cancel") { dismiss() }
-            }
             ToolbarItem(placement: .confirmationAction) {
                 Button("Create") { createChallenge() }
                     .disabled(isCreateDisabled)
