@@ -14,7 +14,6 @@ struct HomeView: View {
     // UI state
     @State private var showPicker = false
     @State private var focusMinutes: Int = 30
-    @State private var warmUpSeconds: Int = 0
     @State private var scheduleEnabled: Bool = false
     @State private var scheduledStart: Date =
         Calendar.current.date(byAdding: .minute, value: 15, to: Date())
@@ -66,11 +65,6 @@ struct HomeView: View {
                         in: 5...180,
                         step: 5)
 
-                Stepper("Warm-up: \(warmUpSeconds) sec",
-                        value: $warmUpSeconds,
-                        in: 0...60,
-                        step: 5)
-
                 HStack {
                     if screenTime.focusState.isActive {
                         Button(role: .destructive) {
@@ -84,7 +78,7 @@ struct HomeView: View {
                                 screenTime.scheduleFocusSession(
                                     start: scheduledStart,
                                     minutes: focusMinutes,
-                                    warmUpSeconds: warmUpSeconds
+                                    warmUpSeconds: 0
                                 )
                             } label: {
                                 Label("Schedule Focus", systemImage: "calendar.badge.clock")
@@ -93,7 +87,7 @@ struct HomeView: View {
                             Button {
                                 screenTime.startFocusSession(
                                     minutes: focusMinutes,
-                                    warmUpSeconds: warmUpSeconds
+                                    warmUpSeconds: 0
                                 )
                             } label: {
                                 Label("Start Focus Now", systemImage: "play.circle.fill")
@@ -131,7 +125,7 @@ struct HomeView: View {
                     }
                 }
 
-                Text("During a focus session, selected apps & domains are shielded. A warm-up delay helps resist impulses before the session starts.")
+                Text("During a focus session, selected apps & domains are shielded.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
@@ -159,7 +153,6 @@ struct HomeView: View {
         }
     }
 }
-
 
 #Preview {
     let challenges = ChallengeService()
