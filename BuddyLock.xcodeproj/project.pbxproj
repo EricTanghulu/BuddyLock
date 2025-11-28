@@ -14,7 +14,7 @@
 		311CCA872E59846700E4E9B1 /* BuddyData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 318DD9D12E559D0B00A578A8 /* BuddyData.swift */; };
 		311CCA892E598C7500E4E9B1 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 311CCA882E598C7300E4E9B1 /* SettingsView.swift */; };
 		316451E72ED918B300CECA7D /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 316451E62ED918B300CECA7D /* MainTabView.swift */; };
-		316451E92ED918D900CECA7D /* FocusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 316451E82ED918D900CECA7D /* FocusView.swift */; };
+		316451E92ED918D900CECA7D /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 316451E82ED918D900CECA7D /* HomeView.swift */; };
 		316451EB2ED918F300CECA7D /* CreateTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 316451EA2ED918F300CECA7D /* CreateTabView.swift */; };
 		316451ED2ED9191200CECA7D /* FriendsHubView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 316451EC2ED9191200CECA7D /* FriendsHubView.swift */; };
 		316451EF2ED9193800CECA7D /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 316451EE2ED9193800CECA7D /* ProfileView.swift */; };
@@ -35,7 +35,7 @@
 		311CCA852E59827200E4E9B1 /* LocalBuddyService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalBuddyService.swift; sourceTree = "<group>"; };
 		311CCA882E598C7300E4E9B1 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		316451E62ED918B300CECA7D /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
-		316451E82ED918D900CECA7D /* FocusView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusView.swift; sourceTree = "<group>"; };
+		316451E82ED918D900CECA7D /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		316451EA2ED918F300CECA7D /* CreateTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateTabView.swift; sourceTree = "<group>"; };
 		316451EC2ED9191200CECA7D /* FriendsHubView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FriendsHubView.swift; sourceTree = "<group>"; };
 		316451EE2ED9193800CECA7D /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
@@ -85,7 +85,7 @@
 				316451EE2ED9193800CECA7D /* ProfileView.swift */,
 				316451EC2ED9191200CECA7D /* FriendsHubView.swift */,
 				316451EA2ED918F300CECA7D /* CreateTabView.swift */,
-				316451E82ED918D900CECA7D /* FocusView.swift */,
+				316451E82ED918D900CECA7D /* HomeView.swift */,
 				316451E62ED918B300CECA7D /* MainTabView.swift */,
 				311CCA882E598C7300E4E9B1 /* SettingsView.swift */,
 				311CCA852E59827200E4E9B1 /* LocalBuddyService.swift */,
@@ -177,7 +177,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A00000000000000000000012 /* BuddyLockApp.swift in Sources */,
-				316451E92ED918D900CECA7D /* FocusView.swift in Sources */,
+				316451E92ED918D900CECA7D /* HomeView.swift in Sources */,
 				311CCA862E59827800E4E9B1 /* LocalBuddyService.swift in Sources */,
 				311CCA812E59823500E4E9B1 /* AskBuddyView.swift in Sources */,
 				316451ED2ED9191200CECA7D /* FriendsHubView.swift in Sources */,
