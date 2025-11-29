@@ -69,6 +69,23 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		313B2B5F2EDAD47000F59DD1 /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				311CCA882E598C7300E4E9B1 /* SettingsView.swift */,
+			);
+			path = Settings;
+			sourceTree = "<group>";
+		};
+		313B2B602EDAD47700F59DD1 /* Profile */ = {
+			isa = PBXGroup;
+			children = (
+				313B2B5F2EDAD47000F59DD1 /* Settings */,
+				316451EE2ED9193800CECA7D /* ProfileView.swift */,
+			);
+			path = Profile;
+			sourceTree = "<group>";
+		};
 		A00000000000000000000003 = {
 			isa = PBXGroup;
 			children = (
@@ -88,13 +105,12 @@
 		A00000000000000000000005 /* BuddyLock */ = {
 			isa = PBXGroup;
 			children = (
+				313B2B602EDAD47700F59DD1 /* Profile */,
 				316451F82ED97CF100CECA7D /* CreateMomentView.swift */,
-				316451EE2ED9193800CECA7D /* ProfileView.swift */,
 				316451EC2ED9191200CECA7D /* FriendsHubView.swift */,
 				316451EA2ED918F300CECA7D /* CreateTabView.swift */,
 				316451E82ED918D900CECA7D /* HomeView.swift */,
 				316451E62ED918B300CECA7D /* MainTabView.swift */,
-				311CCA882E598C7300E4E9B1 /* SettingsView.swift */,
 				311CCA852E59827200E4E9B1 /* LocalBuddyService.swift */,
 				311CCA822E59824F00E4E9B1 /* LocalUnlockRequestService.swift */,
 				311CCA802E59823300E4E9B1 /* AskBuddyView.swift */,
