@@ -81,7 +81,10 @@ struct MainTabView: View {
 
                 // 5) PROFILE TAB
                 NavigationStack {
-                    ProfileView(buddyService: buddyService)
+                    ProfileView(
+                        challengesService: challengesService,
+                        buddyService: buddyService
+                    )
                 }
                 .tabItem {
                     Image(systemName: "person.crop.circle")
