@@ -167,6 +167,7 @@ struct ChallengeListView_Previews: PreviewProvider {
 
     static var previewChallengeService: ChallengeService = {
         let s = ChallengeService()
+        // Just for Xcode canvas; doesn’t affect real saved data.
         if s.challenges.isEmpty {
             let buddies = previewBuddyService.buddies
             if let first = buddies.first {

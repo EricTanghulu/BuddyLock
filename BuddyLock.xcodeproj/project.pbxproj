@@ -19,9 +19,9 @@
 		313B2B642EDAD6CE00F59DD1 /* ScreenTimeDefaultsSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 313B2B632EDAD6CE00F59DD1 /* ScreenTimeDefaultsSettingsView.swift */; };
 		313B2B662EDAD6DC00F59DD1 /* NotificationSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 313B2B652EDAD6DC00F59DD1 /* NotificationSettingsView.swift */; };
 		313B2B682EDAD6E500F59DD1 /* PrivacySettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 313B2B672EDAD6E500F59DD1 /* PrivacySettingsView.swift */; };
-		313B2B6B2EDB882F00F59DD1 /* ChallengeListScope.swift in Sources */ = {isa = PBXBuildFile; fileRef = 313B2B6A2EDB882F00F59DD1 /* ChallengeListScope.swift */; };
 		313B2B6E2EDB884F00F59DD1 /* ChallengeFormat.swift in Sources */ = {isa = PBXBuildFile; fileRef = 313B2B6D2EDB884F00F59DD1 /* ChallengeFormat.swift */; };
 		313B2B702EDB886600F59DD1 /* ChallengeDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 313B2B6F2EDB886600F59DD1 /* ChallengeDetailView.swift */; };
+		313B2B742EDB8A9400F59DD1 /* ChallengeListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 313B2B732EDB8A8E00F59DD1 /* ChallengeListView.swift */; };
 		316451E72ED918B300CECA7D /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 316451E62ED918B300CECA7D /* MainTabView.swift */; };
 		316451E92ED918D900CECA7D /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 316451E82ED918D900CECA7D /* HomeView.swift */; };
 		316451EB2ED918F300CECA7D /* CreateTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 316451EA2ED918F300CECA7D /* CreateTabView.swift */; };
@@ -47,9 +47,9 @@
 		313B2B632EDAD6CE00F59DD1 /* ScreenTimeDefaultsSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenTimeDefaultsSettingsView.swift; sourceTree = "<group>"; };
 		313B2B652EDAD6DC00F59DD1 /* NotificationSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationSettingsView.swift; sourceTree = "<group>"; };
 		313B2B672EDAD6E500F59DD1 /* PrivacySettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivacySettingsView.swift; sourceTree = "<group>"; };
-		313B2B6A2EDB882F00F59DD1 /* ChallengeListScope.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChallengeListScope.swift; sourceTree = "<group>"; };
 		313B2B6D2EDB884F00F59DD1 /* ChallengeFormat.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChallengeFormat.swift; sourceTree = "<group>"; };
 		313B2B6F2EDB886600F59DD1 /* ChallengeDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChallengeDetailView.swift; sourceTree = "<group>"; };
+		313B2B732EDB8A8E00F59DD1 /* ChallengeListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChallengeListView.swift; sourceTree = "<group>"; };
 		316451E62ED918B300CECA7D /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
 		316451E82ED918D900CECA7D /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		316451EA2ED918F300CECA7D /* CreateTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateTabView.swift; sourceTree = "<group>"; };
@@ -99,13 +99,13 @@
 			path = "Profile Views";
 			sourceTree = "<group>";
 		};
-		313B2B692EDB87F700F59DD1 /* Challenges */ = {
+		313B2B692EDB87F700F59DD1 /* Challenge Views */ = {
 			isa = PBXGroup;
 			children = (
 				313B2B6F2EDB886600F59DD1 /* ChallengeDetailView.swift */,
-				313B2B6A2EDB882F00F59DD1 /* ChallengeListScope.swift */,
+				313B2B732EDB8A8E00F59DD1 /* ChallengeListView.swift */,
 			);
-			path = Challenges;
+			path = "Challenge Views";
 			sourceTree = "<group>";
 		};
 		313B2B6C2EDB884300F59DD1 /* Create Views */ = {
@@ -137,7 +137,7 @@
 			isa = PBXGroup;
 			children = (
 				313B2B6C2EDB884300F59DD1 /* Create Views */,
-				313B2B692EDB87F700F59DD1 /* Challenges */,
+				313B2B692EDB87F700F59DD1 /* Challenge Views */,
 				313B2B602EDAD47700F59DD1 /* Profile Views */,
 				316451EC2ED9191200CECA7D /* FriendsHubView.swift */,
 				316451EA2ED918F300CECA7D /* CreateTabView.swift */,
@@ -237,11 +237,11 @@
 			files = (
 				A00000000000000000000012 /* BuddyLockApp.swift in Sources */,
 				316451E92ED918D900CECA7D /* HomeView.swift in Sources */,
+				313B2B742EDB8A9400F59DD1 /* ChallengeListView.swift in Sources */,
 				311CCA862E59827800E4E9B1 /* LocalBuddyService.swift in Sources */,
 				311CCA812E59823500E4E9B1 /* AskBuddyView.swift in Sources */,
 				316451ED2ED9191200CECA7D /* FriendsHubView.swift in Sources */,
 				311CCA7F2E59822300E4E9B1 /* ApprovalsView.swift in Sources */,
-				313B2B6B2EDB882F00F59DD1 /* ChallengeListScope.swift in Sources */,
 				316451F92ED97CF100CECA7D /* CreateMomentView.swift in Sources */,
 				311CCA872E59846700E4E9B1 /* BuddyData.swift in Sources */,
 				313B2B682EDAD6E500F59DD1 /* PrivacySettingsView.swift in Sources */,
