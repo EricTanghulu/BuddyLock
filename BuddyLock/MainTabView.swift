@@ -34,6 +34,7 @@ struct MainTabView: View {
         ZStack {
             // ---------- MAIN TABS ----------
             TabView(selection: $selectedTab) {
+
                 // 1) HOME TAB
                 NavigationStack {
                     HomeView(challengesService: challengesService)
@@ -44,7 +45,28 @@ struct MainTabView: View {
                 }
                 .tag(0)
 
-                // 2) FRIENDS TAB
+                // 2) CHALLENGES TAB
+                NavigationStack {
+                    ChallengeListView(
+                        challenges: challengesService,
+                        buddies: buddyService
+                    )
+                }
+                .tabItem {
+                    Image(systemName: "flag.checkered")
+                    Text("Challenges")
+                }
+                .tag(1)
+
+                // 3) CREATE (+) TAB
+                Text("") // Placeholder; selection is intercepted
+                    .tabItem {
+                        Image(systemName: "plus.app.fill")
+                        Text("Create")
+                    }
+                    .tag(2)
+
+                // 4) FRIENDS TAB (moved from #2 → now #4)
                 NavigationStack {
                     FriendsHubView(
                         buddyService: buddyService,
@@ -54,28 +76,6 @@ struct MainTabView: View {
                 .tabItem {
                     Image(systemName: "person.2.fill")
                     Text("Friends")
-                }
-                .tag(1)
-
-                // 3) MIDDLE "+" TAB – acts like Instagram create
-                Text("") // Placeholder; we intercept selection
-                    .tabItem {
-                        Image(systemName: "plus.app.fill")
-                        Text("Create")
-                    }
-                    .tag(2)
-
-                // 4) APPROVALS TAB
-                NavigationStack {
-                    ApprovalsView(
-                        buddyService: buddyService,
-                        requestService: requestService,
-                        onApprove: { _ in }
-                    )
-                }
-                .tabItem {
-                    Image(systemName: "checkmark.circle.fill")
-                    Text("Approvals")
                 }
                 .tag(3)
 
