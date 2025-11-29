@@ -29,7 +29,6 @@
 		318DD9CE2E55994700A578A8 /* ChallengeViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 318DD9CD2E55994400A578A8 /* ChallengeViews.swift */; };
 		318DD9D02E559CFA00A578A8 /* Challenges.swift in Sources */ = {isa = PBXBuildFile; fileRef = 318DD9CF2E559CF700A578A8 /* Challenges.swift */; };
 		31EBD9442E543B23008FD5AA /* .gitignore in Resources */ = {isa = PBXBuildFile; fileRef = 31EBD9432E543B16008FD5AA /* .gitignore */; };
-		A00000000000000000000011 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000008 /* ContentView.swift */; };
 		A00000000000000000000012 /* BuddyLockApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000007 /* BuddyLockApp.swift */; };
 		A00000000000000000000013 /* ScreenTimeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000009 /* ScreenTimeManager.swift */; };
 		A00000000000000000000014 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000000B /* Assets.xcassets */; };
@@ -59,7 +58,6 @@
 		31EBD9432E543B16008FD5AA /* .gitignore */ = {isa = PBXFileReference; lastKnownFileType = text; path = .gitignore; sourceTree = "<group>"; };
 		A00000000000000000000006 /* BuddyLock.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BuddyLock.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A00000000000000000000007 /* BuddyLockApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuddyLockApp.swift; sourceTree = "<group>"; };
-		A00000000000000000000008 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		A00000000000000000000009 /* ScreenTimeManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenTimeManager.swift; sourceTree = "<group>"; };
 		A0000000000000000000000B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A0000000000000000000000C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -132,7 +130,6 @@
 				318DD9CD2E55994400A578A8 /* ChallengeViews.swift */,
 				318DD9CB2E55991F00A578A8 /* BuddyListView.swift */,
 				A00000000000000000000007 /* BuddyLockApp.swift */,
-				A00000000000000000000008 /* ContentView.swift */,
 				31EBD9432E543B16008FD5AA /* .gitignore */,
 				A00000000000000000000009 /* ScreenTimeManager.swift */,
 				A0000000000000000000000B /* Assets.xcassets */,
@@ -225,7 +222,6 @@
 				316451F92ED97CF100CECA7D /* CreateMomentView.swift in Sources */,
 				311CCA872E59846700E4E9B1 /* BuddyData.swift in Sources */,
 				313B2B682EDAD6E500F59DD1 /* PrivacySettingsView.swift in Sources */,
-				A00000000000000000000011 /* ContentView.swift in Sources */,
 				318DD9CC2E55992700A578A8 /* BuddyListView.swift in Sources */,
 				313B2B642EDAD6CE00F59DD1 /* ScreenTimeDefaultsSettingsView.swift in Sources */,
 				316451EF2ED9193800CECA7D /* ProfileView.swift in Sources */,
