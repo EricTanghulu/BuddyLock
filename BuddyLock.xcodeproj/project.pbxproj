@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0C4394402EDCBD0100DF51DB /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 0C43943F2EDCBD0100DF51DB /* GoogleService-Info.plist */; };
 		0CBD668C2EDA8BB70055B9D7 /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = 0CBD668B2EDA8BB70055B9D7 /* FirebaseAnalytics */; };
 		0CBD66932EDB9D8D0055B9D7 /* AuthViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CBD66922EDB9D8D0055B9D7 /* AuthViewModel.swift */; };
 		0CBD66972EDB9DD10055B9D7 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CBD66962EDB9DD10055B9D7 /* RootView.swift */; };
@@ -15,7 +16,6 @@
 		0CBD669D2EDB9FB20055B9D7 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 0CBD669C2EDB9FB20055B9D7 /* FirebaseCore */; };
 		0CBD66A12EDBA5650055B9D7 /* SignupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CBD66A02EDBA5650055B9D7 /* SignupView.swift */; };
 		0CBD66A32EDBA6B80055B9D7 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 0CBD66A22EDBA6B80055B9D7 /* FirebaseFirestore */; };
-		0CE302D02EDBD05900E372FD /* Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000000C /* Info.plist */; };
 		311CCA7F2E59822300E4E9B1 /* ApprovalsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 311CCA7E2E59822000E4E9B1 /* ApprovalsView.swift */; };
 		311CCA812E59823500E4E9B1 /* AskBuddyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 311CCA802E59823300E4E9B1 /* AskBuddyView.swift */; };
 		311CCA832E59825300E4E9B1 /* LocalUnlockRequestService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 311CCA822E59824F00E4E9B1 /* LocalUnlockRequestService.swift */; };
@@ -43,7 +43,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		0CBD66882EDA8A070055B9D7 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
+		0C43943F2EDCBD0100DF51DB /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		0CBD66922EDB9D8D0055B9D7 /* AuthViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthViewModel.swift; sourceTree = "<group>"; };
 		0CBD66962EDB9DD10055B9D7 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		0CBD66982EDB9EDD0055B9D7 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
@@ -205,7 +205,7 @@
 				A00000000000000000000009 /* ScreenTimeManager.swift */,
 				A0000000000000000000000B /* Assets.xcassets */,
 				A0000000000000000000000C /* Info.plist */,
-				0CBD66882EDA8A070055B9D7 /* GoogleService-Info.plist */,
+				0C43943F2EDCBD0100DF51DB /* GoogleService-Info.plist */,
 			);
 			path = BuddyLock_code;
 			sourceTree = "<group>";
@@ -271,8 +271,8 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				0CE302D02EDBD05900E372FD /* Info.plist in Resources */,
 				A00000000000000000000014 /* Assets.xcassets in Resources */,
+				0C4394402EDCBD0100DF51DB /* GoogleService-Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -429,7 +429,7 @@
 				DEVELOPMENT_TEAM = 9SRG43DCHV;
 				GCC_OPTIMIZATION_LEVEL = 0;
 				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = BuddyLock/Info.plist;
+				INFOPLIST_FILE = BuddyLock_code/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -453,7 +453,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 9SRG43DCHV;
 				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = BuddyLock/Info.plist;
+				INFOPLIST_FILE = BuddyLock_code/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
