@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		0CBD66892EDA8A070055B9D7 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 0CBD66882EDA8A070055B9D7 /* GoogleService-Info.plist */; };
 		0CBD668C2EDA8BB70055B9D7 /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = 0CBD668B2EDA8BB70055B9D7 /* FirebaseAnalytics */; };
 		0CBD66932EDB9D8D0055B9D7 /* AuthViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CBD66922EDB9D8D0055B9D7 /* AuthViewModel.swift */; };
 		0CBD66972EDB9DD10055B9D7 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CBD66962EDB9DD10055B9D7 /* RootView.swift */; };
@@ -16,6 +15,7 @@
 		0CBD669D2EDB9FB20055B9D7 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 0CBD669C2EDB9FB20055B9D7 /* FirebaseCore */; };
 		0CBD66A12EDBA5650055B9D7 /* SignupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CBD66A02EDBA5650055B9D7 /* SignupView.swift */; };
 		0CBD66A32EDBA6B80055B9D7 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 0CBD66A22EDBA6B80055B9D7 /* FirebaseFirestore */; };
+		0CE302D02EDBD05900E372FD /* Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000000C /* Info.plist */; };
 		311CCA7F2E59822300E4E9B1 /* ApprovalsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 311CCA7E2E59822000E4E9B1 /* ApprovalsView.swift */; };
 		311CCA812E59823500E4E9B1 /* AskBuddyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 311CCA802E59823300E4E9B1 /* AskBuddyView.swift */; };
 		311CCA832E59825300E4E9B1 /* LocalUnlockRequestService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 311CCA822E59824F00E4E9B1 /* LocalUnlockRequestService.swift */; };
@@ -37,7 +37,6 @@
 		316451F92ED97CF100CECA7D /* CreateMomentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 316451F82ED97CF100CECA7D /* CreateMomentView.swift */; };
 		318DD9CC2E55992700A578A8 /* BuddyListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 318DD9CB2E55991F00A578A8 /* BuddyListView.swift */; };
 		318DD9D02E559CFA00A578A8 /* Challenges.swift in Sources */ = {isa = PBXBuildFile; fileRef = 318DD9CF2E559CF700A578A8 /* Challenges.swift */; };
-		31EBD9442E543B23008FD5AA /* .gitignore in Resources */ = {isa = PBXBuildFile; fileRef = 31EBD9432E543B16008FD5AA /* .gitignore */; };
 		A00000000000000000000012 /* BuddyLockApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000007 /* BuddyLockApp.swift */; };
 		A00000000000000000000013 /* ScreenTimeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000009 /* ScreenTimeManager.swift */; };
 		A00000000000000000000014 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000000B /* Assets.xcassets */; };
@@ -75,7 +74,7 @@
 		A00000000000000000000007 /* BuddyLockApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuddyLockApp.swift; sourceTree = "<group>"; };
 		A00000000000000000000009 /* ScreenTimeManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenTimeManager.swift; sourceTree = "<group>"; };
 		A0000000000000000000000B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		A0000000000000000000000C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		A0000000000000000000000C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = Info.plist; path = BuddyLock_code/Info.plist; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -272,9 +271,8 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				31EBD9442E543B23008FD5AA /* .gitignore in Resources */,
+				0CE302D02EDBD05900E372FD /* Info.plist in Resources */,
 				A00000000000000000000014 /* Assets.xcassets in Resources */,
-				0CBD66892EDA8A070055B9D7 /* GoogleService-Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
