@@ -165,6 +165,7 @@
 		A00000000000000000000003 = {
 			isa = PBXGroup;
 			children = (
+				31EBD9432E543B16008FD5AA /* .gitignore */,
 				A00000000000000000000005 /* BuddyLock_code */,
 				A00000000000000000000004 /* Products */,
 			);
@@ -201,7 +202,6 @@
 				318DD9CF2E559CF700A578A8 /* Challenges.swift */,
 				318DD9CB2E55991F00A578A8 /* BuddyListView.swift */,
 				A00000000000000000000007 /* BuddyLockApp.swift */,
-				31EBD9432E543B16008FD5AA /* .gitignore */,
 				A00000000000000000000009 /* ScreenTimeManager.swift */,
 				A0000000000000000000000B /* Assets.xcassets */,
 				A0000000000000000000000C /* Info.plist */,

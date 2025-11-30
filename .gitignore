@@ -18,5 +18,5 @@ xcuserdata/
 *.xcuserdata/
 
 # Firebase config
-GoogleService-Info.plist
+BuddyLock_code/GoogleService-Info.plist
 
