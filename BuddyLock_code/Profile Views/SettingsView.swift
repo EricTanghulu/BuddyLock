@@ -1,4 +1,5 @@
 import SwiftUI
+import FirebaseAuth
 
 struct SettingsView: View {
     @ObservedObject var buddyService: LocalBuddyService
@@ -8,6 +9,7 @@ struct SettingsView: View {
             appSettingsSection
             dataSection
             aboutSection
+            accountSection
         }
         .navigationTitle("Settings")
     }
@@ -101,6 +103,33 @@ struct SettingsView: View {
         }
         .padding(.vertical, 6)
     }
+    
+    private var accountSection: some View {
+        Section("Account") {
+            Button(role: .destructive) {
+                signOut()
+            } label: {
+                HStack {
+                    Spacer()
+                    Text("Sign Out")
+                    Spacer()
+                }
+            }
+        }
+    }
+
+    // Add this helper method
+    private func signOut() {
+        // Example using Firebase Auth
+        do {
+            try Auth.auth().signOut()
+            // Optionally navigate to login screen here
+            print("Signed out successfully")
+        } catch {
+            print("Sign out failed: \(error.localizedDescription)")
+        }
+    }
+
 }
 
 #Preview {
