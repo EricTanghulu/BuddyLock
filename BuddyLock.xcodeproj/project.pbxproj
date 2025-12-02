@@ -111,8 +111,9 @@
 			isa = PBXGroup;
 			children = (
 			);
-			path = Models;
-			sourceTree = "<group>";
+			name = Models;
+			path = BuddyLock_code/Models;
+			sourceTree = SOURCE_ROOT;
 		};
 		0CBD66912EDB9D570055B9D7 /* Views */ = {
 			isa = PBXGroup;
