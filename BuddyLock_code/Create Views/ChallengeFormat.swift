@@ -67,9 +67,6 @@ struct ChallengeCreateView: View {
         }
         .navigationTitle("New Challenge")
         .toolbar {
-            ToolbarItem(placement: .cancellationAction) {
-                Button("Cancel") { dismiss() }
-            }
             ToolbarItem(placement: .confirmationAction) {
                 Button("Create") { createChallenge() }
                     .disabled(isCreateDisabled)
