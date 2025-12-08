@@ -1,8 +1,11 @@
 import Foundation
 
 // MARK: - Local Unlock Request (simulated buddy approvals on same device)
+
 enum LocalRequestDecision: String, Codable {
-    case pending, approved, denied
+    case pending
+    case approved
+    case denied
 }
 
 struct LocalUnlockRequest: Identifiable, Codable, Hashable {
@@ -14,75 +17,86 @@ struct LocalUnlockRequest: Identifiable, Codable, Hashable {
     var reason: String?
     var decision: LocalRequestDecision = .pending
     var approvedMinutes: Int? = nil
-
-    // NEW: optional requested app name (display-only; approver will match it to a token)
-    var requestedAppName: String? = nil
 }
 
+/// Local-only request store that simulates both sides (your outgoing requests
+/// and your buddy's incoming requests) on the same device.
 @MainActor
 final class LocalUnlockRequestService: ObservableObject {
     @Published private(set) var incoming: [LocalUnlockRequest] = []
     @Published private(set) var outgoing: [LocalUnlockRequest] = []
 
-    private let incomingKey = "BuddyLock.local.requests.incoming"
-    private let outgoingKey = "BuddyLock.local.requests.outgoing"
+    private let incomingKey = "BuddyLock.local.incomingRequests"
+    private let outgoingKey = "BuddyLock.local.outgoingRequests"
 
     init() {
         load()
     }
 
+    // MARK: - Public API used by views
+
     func refresh() {
         load()
     }
 
-    // Create a new request and mirror it into incoming (demo: same device)
-    func sendRequest(to buddy: LocalBuddy,
-                     requesterName: String,
-                     minutes: Int,
-                     reason: String?,
-                     requestedAppName: String? = nil) {
-        let req = LocalUnlockRequest(
+    /// Create a new unlock request. Because this is a local-only simulation,
+    /// we mirror the same request into both `incoming` and `outgoing`.
+    func sendRequest(
+        requesterName: String,
+        buddyID: UUID,
+        minutes: Int,
+        reason: String?
+    ) {
+        let clamped = max(1, minutes)
+        var req = LocalUnlockRequest(
             requesterName: requesterName,
-            buddyID: buddy.id,
-            minutesRequested: minutes,
-            reason: reason,
-            decision: .pending,
-            approvedMinutes: nil,
-            requestedAppName: requestedAppName
+            buddyID: buddyID,
+            minutesRequested: clamped,
+            reason: reason?.trimmingCharacters(in: .whitespacesAndNewlines)
         )
+        // Newest first in both lists
+        incoming.insert(req, at: 0)
         outgoing.insert(req, at: 0)
-        incoming.insert(req, at: 0) // mirror locally for demo approvals
         save()
     }
 
     func approve(requestID: UUID, minutes: Int) {
-        update(requestID: requestID) { r in
-            r.decision = .approved
-            r.approvedMinutes = minutes
-        }
+        let clamped = max(1, minutes)
+        update(requestID: requestID, decision: .approved, approvedMinutes: clamped)
     }
 
     func deny(requestID: UUID) {
-        update(requestID: requestID) { r in
-            r.decision = .denied
-            r.approvedMinutes = nil
-        }
+        update(requestID: requestID, decision: .denied, approvedMinutes: nil)
     }
 
-    // MARK: - Helpers
+    // MARK: - Internal helpers
 
-    private func update(requestID: UUID, mutate: (inout LocalUnlockRequest) -> Void) {
-        if let idx = incoming.firstIndex(where: { $0.id == requestID }) {
-            var r = incoming[idx]
-            mutate(&r)
-            incoming[idx] = r
+    private func update(
+        requestID: UUID,
+        decision: LocalRequestDecision,
+        approvedMinutes: Int?
+    ) {
+        var changed = false
+
+        for index in incoming.indices {
+            if incoming[index].id == requestID {
+                incoming[index].decision = decision
+                incoming[index].approvedMinutes = approvedMinutes
+                changed = true
+            }
         }
-        if let idx = outgoing.firstIndex(where: { $0.id == requestID }) {
-            var r = outgoing[idx]
-            mutate(&r)
-            outgoing[idx] = r
+
+        for index in outgoing.indices {
+            if outgoing[index].id == requestID {
+                outgoing[index].decision = decision
+                outgoing[index].approvedMinutes = approvedMinutes
+                changed = true
+            }
         }
-        save()
+
+        if changed {
+            save()
+        }
     }
 
     private func load() {
@@ -90,15 +104,21 @@ final class LocalUnlockRequestService: ObservableObject {
         if let data = d.data(forKey: incomingKey),
            let decoded = try? JSONDecoder().decode([LocalUnlockRequest].self, from: data) {
             incoming = decoded
+        } else {
+            incoming = []
         }
+
         if let data = d.data(forKey: outgoingKey),
            let decoded = try? JSONDecoder().decode([LocalUnlockRequest].self, from: data) {
             outgoing = decoded
+        } else {
+            outgoing = []
         }
     }
 
     private func save() {
         let d = UserDefaults.standard
+
         if let data = try? JSONEncoder().encode(incoming) {
             d.set(data, forKey: incomingKey)
         }

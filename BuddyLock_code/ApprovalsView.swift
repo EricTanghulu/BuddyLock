@@ -12,137 +12,224 @@ struct ApprovalsView: View {
     /// Fallback: general approve callback (kept for compatibility)
     var onApprove: (Int) -> Void
 
+    @State private var approvingRequest: LocalUnlockRequest?
+    @State private var approveMinutes: Int = 10
+
     var body: some View {
         List {
-            Section("Incoming") {
-                if requestService.incoming.isEmpty {
-                    Text("No incoming requests.")
-                        .foregroundStyle(.secondary)
-                } else {
-                    ForEach(requestService.incoming) { r in
-                        let displayName = buddyService.buddies.first(where: { $0.id == r.buddyID })?.displayName ?? "Buddy"
-                        RequestRow(
-                            req: r,
-                            name: displayName,
-                            onApprove: { mins in
-                                approve(req: r, minutes: mins)
-                            },
-                            onDeny: {
-                                requestService.deny(requestID: r.id)
-                            }
-                        )
-                    }
-                }
-            }
-
-            Section("Outgoing") {
-                if requestService.outgoing.isEmpty {
-                    Text("No outgoing requests yet.")
-                        .foregroundStyle(.secondary)
-                } else {
-                    ForEach(requestService.outgoing) { r in
-                        HStack {
-                            VStack(alignment: .leading, spacing: 4) {
-                                let name = buddyService.buddies.first(where: { $0.id == r.buddyID })?.displayName ?? "Buddy"
-                                Text("To \(name)")
-                                    .font(.subheadline)
-                                if let appName = r.requestedAppName {
-                                    Text("App: \(appName)").font(.caption).foregroundStyle(.secondary)
-                                }
-                                Text("Requested \(r.minutesRequested) min")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                            Spacer()
-                            StatusPill(req: r)
-                        }
-                    }
-                }
-            }
+            incomingSection
+            outgoingSection
         }
         .navigationTitle("Approvals")
         .toolbar {
-            Button { requestService.refresh() } label: { Image(systemName: "arrow.clockwise") }
-        }
-    }
-
-    private func approve(req: LocalUnlockRequest, minutes: Int) {
-        requestService.approve(requestID: req.id, minutes: minutes)
-
-        #if canImport(FamilyControls)
-        if let appName = req.requestedAppName {
-            // Try to find a token with this display name among currently selected (shielded) apps
-            let pairs = screenTime.resolvedAppNames() // [(token, name)] – may be generic names if resolver isn't available
-            if let match = pairs.first(where: { $0.name == appName }) {
-                // Specific app exception: allow only this app for N minutes
-                screenTime.grantTemporaryException(forApps: [match.token], minutes: minutes)
-                return
-            }
-        }
-        #endif
-
-        // Fallback: lift all shields temporarily (existing general path)
-        onApprove(minutes)
-    }
-}
-
-private struct RequestRow: View {
-    let req: LocalUnlockRequest
-    let name: String
-    var onApprove: (Int) -> Void
-    var onDeny: () -> Void
-
-    var body: some View {
-        HStack(alignment: .top) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("\(req.requesterName) requests \(req.minutesRequested) min")
-                    .font(.subheadline).bold()
-                Text("for \(name)")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                if let appName = req.requestedAppName {
-                    Text("App: \(appName)").font(.caption).foregroundStyle(.secondary)
-                }
-                if let reason = req.reason, !reason.isEmpty {
-                    Text("“\(reason)”").font(.footnote).foregroundStyle(.secondary)
-                }
-                Text(req.createdAt.formatted(date: .abbreviated, time: .shortened))
-                    .font(.caption).foregroundStyle(.secondary)
-            }
-            Spacer()
-            switch req.decision {
-            case .pending:
-                // Unique approve options: if requested is 5 or 10, only show those two; else show [5,10,requested]
-                let base = [5, 10]
-                let approveOptions: [Int] = base.contains(req.minutesRequested) ? base : (base + [req.minutesRequested])
-
-                Menu {
-                    ForEach(approveOptions, id: \.self) { mins in
-                        Button("Approve \(mins) min") { onApprove(mins) }
-                    }
-                    Button(role: .destructive) { onDeny() } label: { Text("Deny") }
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button {
+                    requestService.refresh()
                 } label: {
-                    Label("Decide", systemImage: "checkmark.seal")
+                    Image(systemName: "arrow.clockwise")
                 }
-            case .approved, .denied:
-                StatusPill(req: req)
+                .accessibilityLabel("Refresh")
             }
         }
-        .padding(.vertical, 4)
+        .sheet(item: $approvingRequest) { req in
+            approveSheet(for: req)
+        }
+    }
+
+    // MARK: - Sections
+
+    private var incomingSection: some View {
+        Section {
+            if requestService.incoming.isEmpty {
+                Text("No incoming requests.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            } else {
+                ForEach(requestService.incoming.sorted(by: { $0.createdAt > $1.createdAt })) { r in
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack {
+                            Text(r.requesterName)
+                                .font(.subheadline.weight(.semibold))
+                            Spacer()
+                            StatusPill(req: r)
+                        }
+
+                        Text("Requested: \(r.minutesRequested) minute\(r.minutesRequested == 1 ? "" : "s")")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+
+                        if let buddy = buddyService.buddies.first(where: { $0.id == r.buddyID }) {
+                            Text("Buddy: \(buddy.displayName)")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        if let reason = r.reason, !reason.isEmpty {
+                            Text("“\(reason)”")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        Text(relativeDateString(from: r.createdAt))
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+
+                        if r.decision == .pending {
+                            HStack {
+                                Button(role: .destructive) {
+                                    requestService.deny(requestID: r.id)
+                                } label: {
+                                    Text("Deny")
+                                }
+
+                                Spacer()
+
+                                Button {
+                                    approveMinutes = r.minutesRequested
+                                    approvingRequest = r
+                                } label: {
+                                    Text("Approve")
+                                }
+                                .buttonStyle(.borderedProminent)
+                            }
+                            .font(.footnote)
+                            .padding(.top, 4)
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
+            }
+        } header: {
+            Text("Incoming")
+        }
+    }
+
+    private var outgoingSection: some View {
+        Section {
+            if requestService.outgoing.isEmpty {
+                Text("You haven’t sent any requests yet.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            } else {
+                ForEach(requestService.outgoing.sorted(by: { $0.createdAt > $1.createdAt })) { r in
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Text("\(r.minutesRequested) minute\(r.minutesRequested == 1 ? "" : "s")")
+                                .font(.subheadline.weight(.semibold))
+                            Spacer()
+                            StatusPill(req: r)
+                        }
+
+                        if let buddy = buddyService.buddies.first(where: { $0.id == r.buddyID }) {
+                            Text("To: \(buddy.displayName)")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        if let reason = r.reason, !reason.isEmpty {
+                            Text("“\(reason)”")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        Text(relativeDateString(from: r.createdAt))
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.vertical, 4)
+                }
+            }
+        } header: {
+            Text("Your requests")
+        }
+    }
+
+    // MARK: - Approve sheet
+
+    private func approveSheet(for req: LocalUnlockRequest) -> some View {
+        NavigationStack {
+            VStack(alignment: .leading, spacing: 16) {
+                Text("Approve unlock for \(req.requesterName)?")
+                    .font(.headline)
+
+                Text("Requested \(req.minutesRequested) minute\(req.minutesRequested == 1 ? "" : "s"). You can adjust the time below.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+
+                Stepper(
+                    "\(approveMinutes) minute\(approveMinutes == 1 ? "" : "s")",
+                    value: $approveMinutes,
+                    in: 5...60,
+                    step: 5
+                )
+
+                Spacer()
+
+                Button {
+                    approve(req, minutes: approveMinutes)
+                    approvingRequest = nil
+                } label: {
+                    Text("Approve unlock")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+
+                Button(role: .cancel) {
+                    approvingRequest = nil
+                } label: {
+                    Text("Cancel")
+                        .frame(maxWidth: .infinity)
+                }
+            }
+            .padding()
+            .navigationTitle("Approve request")
+            .navigationBarTitleDisplayMode(.inline)
+        }
+    }
+
+    // MARK: - Actions
+
+    private func approve(_ req: LocalUnlockRequest, minutes: Int) {
+        let clamped = max(1, minutes)
+        // Grant the actual exception now
+        screenTime.grantTemporaryException(minutes: clamped)
+        // Update our local store to mark it approved
+        requestService.approve(requestID: req.id, minutes: clamped)
+        // And call the fallback callback (for compatibility)
+        onApprove(clamped)
+    }
+
+    private func relativeDateString(from date: Date) -> String {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .short
+        return formatter.localizedString(for: date, relativeTo: Date())
     }
 }
+
+// Reuse StatusPill from above
 
 private struct StatusPill: View {
     let req: LocalUnlockRequest
     var body: some View {
         switch req.decision {
         case .pending:
-            Text("Pending").padding(6).background(.thinMaterial, in: Capsule())
+            Text("Pending")
+                .font(.caption2.weight(.semibold))
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(.thinMaterial, in: Capsule())
         case .approved:
             Text("Approved \(req.approvedMinutes ?? req.minutesRequested)m")
-                .padding(6).background(.green.opacity(0.2), in: Capsule())
+                .font(.caption2.weight(.semibold))
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(Color.green.opacity(0.2), in: Capsule())
         case .denied:
-            Text("Denied").padding(6).background(.red.opacity(0.2), in: Capsule())
+            Text("Denied")
+                .font(.caption2.weight(.semibold))
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(Color.red.opacity(0.2), in: Capsule())
         }
     }
 }

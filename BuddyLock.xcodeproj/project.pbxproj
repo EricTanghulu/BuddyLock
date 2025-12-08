@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 60;
+	objectVersion = 70;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -29,6 +29,12 @@
 		313B2B6E2EDB884F00F59DD1 /* ChallengeFormat.swift in Sources */ = {isa = PBXBuildFile; fileRef = 313B2B6D2EDB884F00F59DD1 /* ChallengeFormat.swift */; };
 		313B2B702EDB886600F59DD1 /* ChallengeDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 313B2B6F2EDB886600F59DD1 /* ChallengeDetailView.swift */; };
 		313B2B742EDB8A9400F59DD1 /* ChallengeListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 313B2B732EDB8A8E00F59DD1 /* ChallengeListView.swift */; };
+		313B2B762EE682DA00F59DD1 /* ShieldPromptView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 313B2B752EE682DA00F59DD1 /* ShieldPromptView.swift */; };
+		313B2B7E2EE6897000F59DD1 /* ManagedSettings.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 313B2B7D2EE6897000F59DD1 /* ManagedSettings.framework */; };
+		313B2B862EE6897000F59DD1 /* BuddyLockShieldExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 313B2B7B2EE6897000F59DD1 /* BuddyLockShieldExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		313B2B912EE69F6500F59DD1 /* ManagedSettings.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 313B2B7D2EE6897000F59DD1 /* ManagedSettings.framework */; };
+		313B2B932EE69F6500F59DD1 /* ManagedSettingsUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 313B2B922EE69F6500F59DD1 /* ManagedSettingsUI.framework */; };
+		313B2B9B2EE69F6500F59DD1 /* BuddyLockShieldConfiguration.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 313B2B902EE69F6500F59DD1 /* BuddyLockShieldConfiguration.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		316451E72ED918B300CECA7D /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 316451E62ED918B300CECA7D /* MainTabView.swift */; };
 		316451E92ED918D900CECA7D /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 316451E82ED918D900CECA7D /* HomeView.swift */; };
 		316451EB2ED918F300CECA7D /* CreateTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 316451EA2ED918F300CECA7D /* CreateTabView.swift */; };
@@ -41,6 +47,38 @@
 		A00000000000000000000013 /* ScreenTimeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000009 /* ScreenTimeManager.swift */; };
 		A00000000000000000000014 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000000B /* Assets.xcassets */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		313B2B842EE6897000F59DD1 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A00000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 313B2B7A2EE6897000F59DD1;
+			remoteInfo = BuddyLockShieldExtension;
+		};
+		313B2B992EE69F6500F59DD1 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A00000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 313B2B8F2EE69F6500F59DD1;
+			remoteInfo = BuddyLockShieldConfiguration;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		313B2B8B2EE6897000F59DD1 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				313B2B9B2EE69F6500F59DD1 /* BuddyLockShieldConfiguration.appex in Embed Foundation Extensions */,
+				313B2B862EE6897000F59DD1 /* BuddyLockShieldExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		0C43943F2EDCBD0100DF51DB /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
@@ -60,6 +98,11 @@
 		313B2B6D2EDB884F00F59DD1 /* ChallengeFormat.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChallengeFormat.swift; sourceTree = "<group>"; };
 		313B2B6F2EDB886600F59DD1 /* ChallengeDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChallengeDetailView.swift; sourceTree = "<group>"; };
 		313B2B732EDB8A8E00F59DD1 /* ChallengeListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChallengeListView.swift; sourceTree = "<group>"; };
+		313B2B752EE682DA00F59DD1 /* ShieldPromptView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShieldPromptView.swift; sourceTree = "<group>"; };
+		313B2B7B2EE6897000F59DD1 /* BuddyLockShieldExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = BuddyLockShieldExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		313B2B7D2EE6897000F59DD1 /* ManagedSettings.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ManagedSettings.framework; path = System/Library/Frameworks/ManagedSettings.framework; sourceTree = SDKROOT; };
+		313B2B902EE69F6500F59DD1 /* BuddyLockShieldConfiguration.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = BuddyLockShieldConfiguration.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		313B2B922EE69F6500F59DD1 /* ManagedSettingsUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ManagedSettingsUI.framework; path = System/Library/Frameworks/ManagedSettingsUI.framework; sourceTree = SDKROOT; };
 		316451E62ED918B300CECA7D /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
 		316451E82ED918D900CECA7D /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		316451EA2ED918F300CECA7D /* CreateTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateTabView.swift; sourceTree = "<group>"; };
@@ -77,7 +120,46 @@
 		A0000000000000000000000C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = Info.plist; path = BuddyLock_code/Info.plist; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		313B2B872EE6897000F59DD1 /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 313B2B7A2EE6897000F59DD1 /* BuddyLockShieldExtension */;
+		};
+		313B2B9C2EE69F6500F59DD1 /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 313B2B8F2EE69F6500F59DD1 /* BuddyLockShieldConfiguration */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		313B2B7F2EE6897000F59DD1 /* BuddyLockShieldExtension */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (313B2B872EE6897000F59DD1 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = BuddyLockShieldExtension; sourceTree = "<group>"; };
+		313B2B942EE69F6500F59DD1 /* BuddyLockShieldConfiguration */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (313B2B9C2EE69F6500F59DD1 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = BuddyLockShieldConfiguration; sourceTree = "<group>"; };
+/* End PBXFileSystemSynchronizedRootGroup section */
+
 /* Begin PBXFrameworksBuildPhase section */
+		313B2B782EE6897000F59DD1 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				313B2B7E2EE6897000F59DD1 /* ManagedSettings.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		313B2B8D2EE69F6500F59DD1 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				313B2B912EE69F6500F59DD1 /* ManagedSettings.framework in Frameworks */,
+				313B2B932EE69F6500F59DD1 /* ManagedSettingsUI.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		A00000000000000000000010 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -163,11 +245,23 @@
 			path = "Create Views";
 			sourceTree = "<group>";
 		};
+		313B2B7C2EE6897000F59DD1 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				313B2B7D2EE6897000F59DD1 /* ManagedSettings.framework */,
+				313B2B922EE69F6500F59DD1 /* ManagedSettingsUI.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		A00000000000000000000003 = {
 			isa = PBXGroup;
 			children = (
 				31EBD9432E543B16008FD5AA /* .gitignore */,
 				A00000000000000000000005 /* BuddyLock_code */,
+				313B2B7F2EE6897000F59DD1 /* BuddyLockShieldExtension */,
+				313B2B942EE69F6500F59DD1 /* BuddyLockShieldConfiguration */,
+				313B2B7C2EE6897000F59DD1 /* Frameworks */,
 				A00000000000000000000004 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -176,6 +270,8 @@
 			isa = PBXGroup;
 			children = (
 				A00000000000000000000006 /* BuddyLock.app */,
+				313B2B7B2EE6897000F59DD1 /* BuddyLockShieldExtension.appex */,
+				313B2B902EE69F6500F59DD1 /* BuddyLockShieldConfiguration.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -183,6 +279,7 @@
 		A00000000000000000000005 /* BuddyLock_code */ = {
 			isa = PBXGroup;
 			children = (
+				313B2B752EE682DA00F59DD1 /* ShieldPromptView.swift */,
 				0CBD66912EDB9D570055B9D7 /* Views */,
 				0CBD66902EDB9D460055B9D7 /* Models */,
 				0CBD668F2EDB9C950055B9D7 /* ViewModels */,
@@ -214,6 +311,50 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		313B2B7A2EE6897000F59DD1 /* BuddyLockShieldExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 313B2B882EE6897000F59DD1 /* Build configuration list for PBXNativeTarget "BuddyLockShieldExtension" */;
+			buildPhases = (
+				313B2B772EE6897000F59DD1 /* Sources */,
+				313B2B782EE6897000F59DD1 /* Frameworks */,
+				313B2B792EE6897000F59DD1 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				313B2B7F2EE6897000F59DD1 /* BuddyLockShieldExtension */,
+			);
+			name = BuddyLockShieldExtension;
+			packageProductDependencies = (
+			);
+			productName = BuddyLockShieldExtension;
+			productReference = 313B2B7B2EE6897000F59DD1 /* BuddyLockShieldExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		313B2B8F2EE69F6500F59DD1 /* BuddyLockShieldConfiguration */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 313B2B9D2EE69F6500F59DD1 /* Build configuration list for PBXNativeTarget "BuddyLockShieldConfiguration" */;
+			buildPhases = (
+				313B2B8C2EE69F6500F59DD1 /* Sources */,
+				313B2B8D2EE69F6500F59DD1 /* Frameworks */,
+				313B2B8E2EE69F6500F59DD1 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				313B2B942EE69F6500F59DD1 /* BuddyLockShieldConfiguration */,
+			);
+			name = BuddyLockShieldConfiguration;
+			packageProductDependencies = (
+			);
+			productName = BuddyLockShieldConfiguration;
+			productReference = 313B2B902EE69F6500F59DD1 /* BuddyLockShieldConfiguration.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 		A00000000000000000000002 /* BuddyLock */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = A00000000000000000000016 /* Build configuration list for PBXNativeTarget "BuddyLock" */;
@@ -221,10 +362,13 @@
 				A0000000000000000000000E /* Sources */,
 				A0000000000000000000000F /* Resources */,
 				A00000000000000000000010 /* Frameworks */,
+				313B2B8B2EE6897000F59DD1 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				313B2B852EE6897000F59DD1 /* PBXTargetDependency */,
+				313B2B9A2EE69F6500F59DD1 /* PBXTargetDependency */,
 			);
 			name = BuddyLock;
 			productName = BuddyLockStarter;
@@ -238,9 +382,15 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
-				LastSwiftUpdateCheck = 1510;
+				LastSwiftUpdateCheck = 1640;
 				LastUpgradeCheck = 1640;
 				TargetAttributes = {
+					313B2B7A2EE6897000F59DD1 = {
+						CreatedOnToolsVersion = 16.4;
+					};
+					313B2B8F2EE69F6500F59DD1 = {
+						CreatedOnToolsVersion = 16.4;
+					};
 					A00000000000000000000002 = {
 						CreatedOnToolsVersion = 15.0;
 					};
@@ -263,11 +413,27 @@
 			projectRoot = "";
 			targets = (
 				A00000000000000000000002 /* BuddyLock */,
+				313B2B7A2EE6897000F59DD1 /* BuddyLockShieldExtension */,
+				313B2B8F2EE69F6500F59DD1 /* BuddyLockShieldConfiguration */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		313B2B792EE6897000F59DD1 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		313B2B8E2EE69F6500F59DD1 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		A0000000000000000000000F /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -280,6 +446,20 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		313B2B772EE6897000F59DD1 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		313B2B8C2EE69F6500F59DD1 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		A0000000000000000000000E /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -307,6 +487,7 @@
 				313B2B662EDAD6DC00F59DD1 /* NotificationSettingsView.swift in Sources */,
 				318DD9D02E559CFA00A578A8 /* Challenges.swift in Sources */,
 				0CBD66932EDB9D8D0055B9D7 /* AuthViewModel.swift in Sources */,
+				313B2B762EE682DA00F59DD1 /* ShieldPromptView.swift in Sources */,
 				313B2B702EDB886600F59DD1 /* ChallengeDetailView.swift in Sources */,
 				313B2B6E2EDB884F00F59DD1 /* ChallengeFormat.swift in Sources */,
 				316451EB2ED918F300CECA7D /* CreateTabView.swift in Sources */,
@@ -316,7 +497,172 @@
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		313B2B852EE6897000F59DD1 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 313B2B7A2EE6897000F59DD1 /* BuddyLockShieldExtension */;
+			targetProxy = 313B2B842EE6897000F59DD1 /* PBXContainerItemProxy */;
+		};
+		313B2B9A2EE69F6500F59DD1 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 313B2B8F2EE69F6500F59DD1 /* BuddyLockShieldConfiguration */;
+			targetProxy = 313B2B992EE69F6500F59DD1 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
+		313B2B892EE6897000F59DD1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_ENTITLEMENTS = BuddyLockShieldExtension/BuddyLockShieldExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 9SRG43DCHV;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = BuddyLockShieldExtension/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = BuddyLockShieldExtension;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.BuddyLockStarter.BuddyLockShieldExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		313B2B8A2EE6897000F59DD1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_ENTITLEMENTS = BuddyLockShieldExtension/BuddyLockShieldExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 9SRG43DCHV;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = BuddyLockShieldExtension/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = BuddyLockShieldExtension;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.BuddyLockStarter.BuddyLockShieldExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		313B2B9E2EE69F6500F59DD1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_ENTITLEMENTS = BuddyLockShieldConfiguration/BuddyLockShieldConfiguration.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 9SRG43DCHV;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = BuddyLockShieldConfiguration/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = BuddyLockShieldConfiguration;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.BuddyLockStarter.BuddyLockShieldConfiguration;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		313B2B9F2EE69F6500F59DD1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_ENTITLEMENTS = BuddyLockShieldConfiguration/BuddyLockShieldConfiguration.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 9SRG43DCHV;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = BuddyLockShieldConfiguration/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = BuddyLockShieldConfiguration;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.BuddyLockStarter.BuddyLockShieldConfiguration;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 		A00000000000000000000017 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -473,6 +819,24 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		313B2B882EE6897000F59DD1 /* Build configuration list for PBXNativeTarget "BuddyLockShieldExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				313B2B892EE6897000F59DD1 /* Debug */,
+				313B2B8A2EE6897000F59DD1 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		313B2B9D2EE69F6500F59DD1 /* Build configuration list for PBXNativeTarget "BuddyLockShieldConfiguration" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				313B2B9E2EE69F6500F59DD1 /* Debug */,
+				313B2B9F2EE69F6500F59DD1 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		A00000000000000000000015 /* Build configuration list for PBXProject "BuddyLock" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

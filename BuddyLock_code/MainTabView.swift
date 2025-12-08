@@ -37,7 +37,12 @@ struct MainTabView: View {
 
                 // 1) HOME TAB
                 NavigationStack {
-                    HomeView(challengesService: challengesService)
+                    HomeView(
+                        challengesService: challengesService,
+                        leaderboardEntries: [],
+                        socialPosts: [],
+                        stories: []
+                    )
                 }
                 .tabItem {
                     Image(systemName: "house.fill")
