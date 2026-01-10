@@ -236,6 +236,7 @@ struct ShieldPromptView: View {
 }
 
 // MARK: - Preview
+import FirebaseAuth
 
 #Preview {
     // Mock services for preview
@@ -243,8 +244,9 @@ struct ShieldPromptView: View {
     screenTime.activeMode = .essentialsOnly  // Pretend we're in Study Only mode
 
     let buddyService = LocalBuddyService()
-    buddyService.addBuddy(name: "Alex")
-    buddyService.addBuddy(name: "Sam")
+    buddyService.addBuddy(LocalBuddy(remoteID: "remote1",     // buddy doc ID
+                                     buddyUserID: "buddyID",               // friend's auth UID
+                                     ownerID: "akame" ))                  // current user's UID))
 
     let requestService = LocalUnlockRequestService()
 

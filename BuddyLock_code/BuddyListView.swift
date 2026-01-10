@@ -10,7 +10,9 @@ struct BuddyListView: View {
                 HStack {
                     TextField("Display name", text: $newName)
                     Button {
-                        service.addBuddy(name: newName)
+                        service.addBuddy(LocalBuddy(remoteID: "remote1",     // buddy doc ID
+                                                    buddyUserID: "buddyID",               // friend's auth UID
+                                                    ownerID: "akame" ))
                         newName = ""
                     } label: {
                         Label("Add", systemImage: "plus.circle.fill")
@@ -30,7 +32,7 @@ struct BuddyListView: View {
                     ForEach(service.buddies) { buddy in
                         HStack {
                             Image(systemName: "person.fill")
-                            Text(buddy.displayName)
+                            Text(buddy.buddyUserID)
                             Spacer()
                         }
                         .swipeActions {

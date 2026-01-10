@@ -248,7 +248,9 @@ struct ProfileView: View {
     let screenTime = ScreenTimeManager()
     let challenges = ChallengeService()
     let buddies = LocalBuddyService()
-    buddies.addBuddy(name: "Preview Buddy")
+    buddies.addBuddy(LocalBuddy(remoteID: "remote1",     // buddy doc ID
+                                buddyUserID: "buddyID",               // friend's auth UID
+                                ownerID: "akame" )) 
 
     return NavigationStack {
         ProfileView(challengesService: challenges, buddyService: buddies)

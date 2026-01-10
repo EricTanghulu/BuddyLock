@@ -20,7 +20,7 @@ struct BuddyLockApp: App {
     @StateObject private var screenTime = ScreenTimeManager()
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
     @StateObject private var auth = AuthViewModel()
-    
+   
     var body: some Scene {
         WindowGroup {
             RootView()

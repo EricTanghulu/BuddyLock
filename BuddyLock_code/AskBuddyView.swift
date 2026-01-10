@@ -58,7 +58,7 @@ struct AskBuddyView: View {
             } else {
                 Picker("Choose a buddy", selection: $selectedBuddyIndex) {
                     ForEach(Array(buddyService.buddies.enumerated()), id: \.offset) { index, buddy in
-                        Text(buddy.displayName).tag(index)
+                        Text(buddy.buddyUserID).tag(index)
                     }
                 }
 

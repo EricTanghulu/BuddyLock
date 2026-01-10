@@ -9,28 +9,32 @@
 import Foundation
 import FirebaseFirestore
 
-struct FriendRequest: Codable, Identifiable {
+struct FriendRequest: Identifiable, Codable {
     @DocumentID var id: String?
-    let fromUserID: String  // sender remoteID
-    let toUserID: String    // receiver remoteID
+    let fromUserID: String
+    let toUserID: String
+    let status: String   // "pending"
     let timestamp: Date
 }
+
 
 @MainActor
 final class FriendRequestService: ObservableObject {
 
-    @Published var incomingRequests: [FriendRequest] = []
+    @Published private(set) var incomingRequests: [FriendRequest] = []
 
     private let db = Firestore.firestore()
     private var listener: ListenerRegistration?
 
-    private let localBuddyService: LocalBuddyService
-    private let currentUserID: String // remoteID of logged-in user
+    private let currentUserID: String
+    private let buddyService: LocalBuddyService
 
-    init(currentUserID: String, localBuddyService: LocalBuddyService) {
+    init(
+        currentUserID: String,
+        buddyService: LocalBuddyService
+    ) {
         self.currentUserID = currentUserID
-        self.localBuddyService = localBuddyService
-
+        self.buddyService = buddyService
         startListening()
     }
 
@@ -38,14 +42,16 @@ final class FriendRequestService: ObservableObject {
         listener?.remove()
     }
 
-    // MARK: - Listen for incoming friend requests
+    // MARK: - Listen for pending incoming requests
     private func startListening() {
         listener = db.collection("friendRequests")
             .whereField("toUserID", isEqualTo: currentUserID)
+            .whereField("status", isEqualTo: "pending")
+            .order(by: "timestamp", descending: true)
             .addSnapshotListener { [weak self] snapshot, error in
-                guard let self = self else { return }
-                guard let documents = snapshot?.documents else {
-                    print("❌ Firestore error:", error?.localizedDescription ?? "")
+                guard let self,
+                      let documents = snapshot?.documents else {
+                    print("❌ Friend request listener error:", error?.localizedDescription ?? "")
                     return
                 }
 
@@ -55,16 +61,12 @@ final class FriendRequestService: ObservableObject {
             }
     }
 
-    // MARK: - Send a friend request
-    func sendRequest(to buddy: LocalBuddy) {
-        guard let toID = buddy.remoteID else {
-            print("❌ Cannot send request — buddy has no remoteID")
-            return
-        }
-
+    // MARK: - Send friend request
+    func sendRequest(toUserID: String) {
         let request = FriendRequest(
             fromUserID: currentUserID,
-            toUserID: toID,
+            toUserID: toUserID,
+            status: "pending",
             timestamp: Date()
         )
 
@@ -75,32 +77,31 @@ final class FriendRequestService: ObservableObject {
         }
     }
 
-    // MARK: - Accept a friend request
-    func acceptRequest(_ request: FriendRequest) async {
-        // 1️⃣ Add buddy doc for the current user
-        let newBuddy = LocalBuddy(displayName: "Friend Name", remoteID: request.fromUserID)
-        localBuddyService.addBuddy(newBuddy)
-
-        // 2️⃣ Add buddy doc for the sender
-        // (Optional: only if sender also needs this buddy in their list)
-        // You can call localBuddyService.addBuddy() for sender if needed
-
-        // 3️⃣ Delete the friend request doc
+    // MARK: - Accept request
+    func accept(_ request: FriendRequest) {
         guard let requestID = request.id else { return }
-        db.collection("friendRequests").document(requestID).delete { error in
-            if let error = error {
-                print("❌ Failed to delete friend request:", error)
-            }
-        }
+
+        // 1️⃣ Add buddy (remoteID = sender)
+        buddyService.addBuddy(
+            LocalBuddy(
+                remoteID: request.fromUserID,
+                buddyUserID: request.fromUserID,
+                ownerID: request.toUserID
+            )
+        )
+
+        // 2️⃣ Mark request as accepted
+        db.collection("friendRequests")
+            .document(requestID)
+            .updateData(["status": "accepted"])
     }
 
-    // MARK: - Reject a friend request
-    func rejectRequest(_ request: FriendRequest) {
+    // MARK: - Reject request
+    func reject(_ request: FriendRequest) {
         guard let requestID = request.id else { return }
-        db.collection("friendRequests").document(requestID).delete { error in
-            if let error = error {
-                print("❌ Failed to delete friend request:", error)
-            }
-        }
+
+        db.collection("friendRequests")
+            .document(requestID)
+            .updateData(["status": "rejected"])
     }
 }

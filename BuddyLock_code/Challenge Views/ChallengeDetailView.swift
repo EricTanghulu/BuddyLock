@@ -68,7 +68,7 @@ struct ChallengeDetailView: View {
         if pid == challenges.localUserID {
             return "You"
         }
-        return buddies.buddies.first(where: { $0.id == pid })?.displayName ?? "Unknown"
+        return buddies.buddies.first(where: { $0.id == pid })?.buddyUserID ?? "Unknown"
     }
 
     private func typeDescription(for type: ChallengeType) -> String {
@@ -86,8 +86,9 @@ struct ChallengeDetailView_Previews: PreviewProvider {
     static var previewBuddyService: LocalBuddyService = {
         let s = LocalBuddyService()
         if s.buddies.isEmpty {
-            s.addBuddy(name: "Alex")
-            s.addBuddy(name: "Jordan")
+            s.addBuddy(LocalBuddy(remoteID: "remote1",     // buddy doc ID
+                                  buddyUserID: "buddyID",               // friend's auth UID
+                                  ownerID: "akame" ))   
         }
         return s
     }()

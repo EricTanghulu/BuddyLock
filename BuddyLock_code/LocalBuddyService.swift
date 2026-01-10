@@ -4,15 +4,14 @@ import FirebaseFirestore
 // MARK: - changing to firebase buddy
 
 struct LocalBuddy: Identifiable, Codable, Hashable {
-    var id: UUID = UUID()          // local identity (used by challenges)
-    var displayName: String
-    @DocumentID var remoteID: String?   // Firestore identity
+    var id: UUID = UUID()                 // local-only
+    @DocumentID var remoteID: String?     // buddy doc ID
+    var buddyUserID: String               // friend's auth UID
+    var ownerID: String                   // current user's UID
+    var displayName: String? = nil
 }
 
-
-// MARK: - firebase Buddy Service
-import Foundation
-import FirebaseFirestore
+import FirebaseAuth
 
 @MainActor
 final class LocalBuddyService: ObservableObject {
@@ -22,8 +21,10 @@ final class LocalBuddyService: ObservableObject {
     private let db = Firestore.firestore()
     private let collection = "buddies"
     private var listener: ListenerRegistration?
+    private let currentUserID: String
 
     init() {
+        currentUserID = Auth.auth().currentUser?.uid ?? "unknown"
         startListening()
     }
 
@@ -31,60 +32,21 @@ final class LocalBuddyService: ObservableObject {
         listener?.remove()
     }
 
-    // MARK: - Firestore listener (syncs remote changes)
+    // MARK: - Listen to current user's buddies only
     private func startListening() {
         listener = db.collection(collection)
-            .order(by: "displayName")
+            .whereField("ownerID", isEqualTo: currentUserID)
+            .order(by: "buddyUserID")
             .addSnapshotListener { [weak self] snapshot, error in
-                guard let self = self else { return }
-                guard let documents = snapshot?.documents else {
-                    print("❌ Firestore error:", error?.localizedDescription ?? "")
-                    return
+                guard let self, let documents = snapshot?.documents else { return }
+                self.buddies = documents.compactMap {
+                    try? $0.data(as: LocalBuddy.self)
                 }
-
-                // Convert Firestore docs to LocalBuddy
-                let remoteBuddies = documents.compactMap { try? $0.data(as: LocalBuddy.self) }
-
-                // Merge remote buddies with existing local-only buddies
-                self.buddies = self.merge(remoteBuddies: remoteBuddies)
             }
     }
 
-    // MARK: - Merge remote with local
-    private func merge(remoteBuddies: [LocalBuddy]) -> [LocalBuddy] {
-        var combined = buddies
-
-        for buddy in remoteBuddies {
-            if let remoteID = buddy.remoteID,
-               !combined.contains(where: { $0.remoteID == remoteID }) {
-                combined.append(buddy)
-            }
-        }
-
-        return combined
-    }
-
-    // MARK: - Add buddy by name (local-only or cloud)
-//    func addBuddy(name: String) {
-//        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
-//        guard !trimmed.isEmpty else { return }
-//
-//        let buddy = LocalBuddy(displayName: trimmed)
-//
-//        // Prevent duplicates by name
-//        if buddies.contains(where: { $0.displayName == trimmed }) { return }
-//
-//        buddies.append(buddy)
-//
-//        // Save to Firestore
-//        do {
-//            try db.collection(collection).addDocument(from: buddy)
-//        } catch {
-//            print("❌ Failed to add buddy:", error)
-//        }
-//    }
-
-    // MARK: - Add buddy directly (from Firestore / friend requests)
+    // MARK: - Accept friend request → add buddy
+    // Add buddy directly (from Firestore / friend requests)
     func addBuddy(_ buddy: LocalBuddy) {
         // Prevent duplicates by remoteID
         if let remoteID = buddy.remoteID,
@@ -92,7 +54,7 @@ final class LocalBuddyService: ObservableObject {
 
         buddies.append(buddy)
 
-        // If no remoteID, add to Firestore
+        // If no remoteID, save to Firestore
         if buddy.remoteID == nil {
             do {
                 try db.collection(collection).addDocument(from: buddy)
@@ -102,17 +64,13 @@ final class LocalBuddyService: ObservableObject {
         }
     }
 
+
     // MARK: - Remove buddy
     func removeBuddy(_ buddy: LocalBuddy) {
-        buddies.removeAll { $0.id == buddy.id || $0.remoteID == buddy.remoteID }
+        guard let remoteID = buddy.remoteID else { return }
 
-        // Delete from Firestore if remoteID exists
-        if let remoteID = buddy.remoteID {
-            db.collection(collection).document(remoteID).delete { error in
-                if let error = error {
-                    print("❌ Failed to delete buddy:", error)
-                }
-            }
-        }
+        db.collection(collection)
+            .document(remoteID)
+            .delete()
     }
 }

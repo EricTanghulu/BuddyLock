@@ -158,9 +158,9 @@ struct ChallengeListView_Previews: PreviewProvider {
     static var previewBuddyService: LocalBuddyService = {
         let s = LocalBuddyService()
         if s.buddies.isEmpty {
-            s.addBuddy(name: "Alex")
-            s.addBuddy(name: "Jordan")
-            s.addBuddy(name: "Sam")
+            s.addBuddy(LocalBuddy(remoteID: "remote1",     // buddy doc ID
+                                  buddyUserID: "buddyID",               // friend's auth UID
+                                  ownerID: "akame" )) 
         }
         return s
     }()
