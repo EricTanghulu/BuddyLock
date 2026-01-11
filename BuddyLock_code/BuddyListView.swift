@@ -7,23 +7,33 @@ struct BuddyListView: View {
     @State private var friendUserID: String = ""
     @State private var sent = false
 
+    
     var body: some View {
         Form {
 
             // MARK: - Send friend request
+            
             Section("Add Buddy") {
                 TextField("Friend's user ID", text: $friendUserID)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
 
                 Button {
-                    friendRequests.sendRequest(toUserID: friendUserID)
-                    friendUserID = ""
-                    sent = true
+                    do {
+                        try friendRequests.sendRequest(toUserID: friendUserID)
+                        friendUserID = ""
+                        sent = true
+                    } catch {
+                        print("❌ Failed to send friend request:", error)
+                        sent = false
+                    }
                 } label: {
                     Label("Send friend request", systemImage: "paperplane.fill")
                 }
                 .disabled(friendUserID.isEmpty)
+
+
+
 
                 if sent {
                     Text("Friend request sent")

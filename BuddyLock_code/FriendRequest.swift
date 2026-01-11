@@ -36,6 +36,12 @@ final class FriendRequestService: ObservableObject {
     ) {
         self.currentUserID = Auth.auth().currentUser?.uid ?? "unknown"
         self.buddyService = buddyService
+        if let user = Auth.auth().currentUser {
+            print("UID:", user.uid)
+        } else {
+            print("Not signed in!")
+        }
+
         startListening()
     }
 
@@ -63,7 +69,7 @@ final class FriendRequestService: ObservableObject {
     }
 
     // MARK: - Send friend request
-    func sendRequest(toUserID: String) {
+    func sendRequest(toUserID: String) throws {
         let request = FriendRequest(
             fromUserID: currentUserID,
             toUserID: toUserID,
@@ -71,12 +77,9 @@ final class FriendRequestService: ObservableObject {
             timestamp: Date()
         )
 
-        do {
-            try db.collection("friendRequests").addDocument(from: request)
-        } catch {
-            print("❌ Failed to send friend request:", error)
-        }
+        try db.collection("friendRequests").addDocument(from: request)
     }
+
 
     // MARK: - Accept request
     func accept(_ request: FriendRequest) {
