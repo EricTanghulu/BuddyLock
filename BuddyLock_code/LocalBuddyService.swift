@@ -7,7 +7,6 @@ struct LocalBuddy: Identifiable, Codable, Hashable {
     var id: UUID = UUID()                 // local-only
     @DocumentID var remoteID: String?     // buddy doc ID
     var buddyUserID: String               // friend's auth UID
-    var ownerID: String                   // current user's UID
     var displayName: String? = nil
 }
 
@@ -19,7 +18,7 @@ final class LocalBuddyService: ObservableObject {
     @Published private(set) var buddies: [LocalBuddy] = []
 
     private let db = Firestore.firestore()
-    private let collection = "buddies"
+    private let collection = "friends"
     private var listener: ListenerRegistration?
     private let currentUserID: String
 

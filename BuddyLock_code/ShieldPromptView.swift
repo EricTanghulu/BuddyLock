@@ -245,8 +245,8 @@ import FirebaseAuth
 
     let buddyService = LocalBuddyService()
     buddyService.addBuddy(LocalBuddy(remoteID: "remote1",     // buddy doc ID
-                                     buddyUserID: "buddyID",               // friend's auth UID
-                                     ownerID: "akame" ))                  // current user's UID))
+                                     buddyUserID: "buddyID"               // friend's auth UID
+                                     , displayName: "Buddy"))
 
     let requestService = LocalUnlockRequestService()
 

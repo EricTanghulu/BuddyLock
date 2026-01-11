@@ -8,6 +8,8 @@
 
 import Foundation
 import FirebaseFirestore
+import FirebaseAuth
+
 
 struct FriendRequest: Identifiable, Codable {
     @DocumentID var id: String?
@@ -30,10 +32,9 @@ final class FriendRequestService: ObservableObject {
     private let buddyService: LocalBuddyService
 
     init(
-        currentUserID: String,
         buddyService: LocalBuddyService
     ) {
-        self.currentUserID = currentUserID
+        self.currentUserID = Auth.auth().currentUser?.uid ?? "unknown"
         self.buddyService = buddyService
         startListening()
     }
@@ -84,9 +85,7 @@ final class FriendRequestService: ObservableObject {
         // 1️⃣ Add buddy (remoteID = sender)
         buddyService.addBuddy(
             LocalBuddy(
-                remoteID: request.fromUserID,
                 buddyUserID: request.fromUserID,
-                ownerID: request.toUserID
             )
         )
 

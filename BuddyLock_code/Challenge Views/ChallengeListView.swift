@@ -160,7 +160,7 @@ struct ChallengeListView_Previews: PreviewProvider {
         if s.buddies.isEmpty {
             s.addBuddy(LocalBuddy(remoteID: "remote1",     // buddy doc ID
                                   buddyUserID: "buddyID",               // friend's auth UID
-                                  ownerID: "akame" )) 
+                                  )) 
         }
         return s
     }()

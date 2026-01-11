@@ -250,7 +250,7 @@ struct ProfileView: View {
     let buddies = LocalBuddyService()
     buddies.addBuddy(LocalBuddy(remoteID: "remote1",     // buddy doc ID
                                 buddyUserID: "buddyID",               // friend's auth UID
-                                ownerID: "akame" )) 
+                                )) 
 
     return NavigationStack {
         ProfileView(challengesService: challenges, buddyService: buddies)

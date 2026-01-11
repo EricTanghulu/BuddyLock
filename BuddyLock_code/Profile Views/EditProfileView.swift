@@ -45,7 +45,7 @@ struct EditProfileView: View {
     let service = LocalBuddyService()
     service.addBuddy(LocalBuddy(remoteID: "remote1",     // buddy doc ID
                                 buddyUserID: "buddyID",               // friend's auth UID
-                                ownerID: "akame" )) 
+                                )) 
 
     return NavigationStack {
         EditProfileView(buddyService: service)

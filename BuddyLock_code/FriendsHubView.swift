@@ -2,6 +2,7 @@ import SwiftUI
 
 struct FriendsHubView: View {
     @ObservedObject var buddyService: LocalBuddyService
+    @ObservedObject var friendRequestService: FriendRequestService
     @ObservedObject var requestService: LocalUnlockRequestService
     @EnvironmentObject var screenTime: ScreenTimeManager
 
@@ -34,7 +35,8 @@ struct FriendsHubView: View {
 
             Section("Buddies") {
                 NavigationLink {
-                    BuddyListView(service: buddyService)
+                    BuddyListView(buddyService: buddyService,
+                                  friendRequests: friendRequestService)
                 } label: {
                     Label("Manage Buddies", systemImage: "person.badge.plus")
                 }
