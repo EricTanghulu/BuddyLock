@@ -1,10 +1,14 @@
 import SwiftUI
+import FirebaseAuth
 
 struct ProfileView: View {
     @EnvironmentObject var screenTime: ScreenTimeManager
     @ObservedObject var challengesService: ChallengeService
     @ObservedObject var buddyService: LocalBuddyService
+    @Environment(\.dismiss) private var dismiss
+    @State private var logoutError: String?
 
+    
     @AppStorage("BuddyLock.displayName")
     private var displayName: String = ""
 
@@ -15,11 +19,41 @@ struct ProfileView: View {
                 focusStatusCard
                 statsCard
                 achievementsCard
+
+                // MARK: - Logout button
+                Button(role: .destructive) {
+                    do {
+                        try Auth.auth().signOut()
+                        dismiss() // go back to login
+                    } catch {
+                        logoutError = error.localizedDescription
+                    }
+                }
+                label: {
+                    Label("Logout", systemImage: "arrow.backward.square")
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(.red.opacity(0.1), in: RoundedRectangle(cornerRadius: 12))
+                }
+                .foregroundColor(.red)
+                .padding(.top, 20)
+
+                // Optional: show error
+                if let error = logoutError {
+                    Text("Logout failed: \(error)")
+                        .font(.footnote)
+                        .foregroundColor(.red)
+                        .multilineTextAlignment(.center)
+                }
             }
+
+            
             .padding()
         }
         .navigationTitle("Your Profile")
         .navigationBarTitleDisplayMode(.inline)
+        
+        
     }
 
     // MARK: - Cards
