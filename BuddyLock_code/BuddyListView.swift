@@ -7,33 +7,30 @@ struct BuddyListView: View {
     @State private var friendUserID: String = ""
     @State private var sent = false
 
-    
     var body: some View {
         Form {
 
             // MARK: - Send friend request
-            
             Section("Add Buddy") {
                 TextField("Friend's user ID", text: $friendUserID)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
 
                 Button {
-                    do {
-                        try friendRequests.sendRequest(toUserID: friendUserID)
-                        friendUserID = ""
-                        sent = true
-                    } catch {
-                        print("❌ Failed to send friend request:", error)
-                        sent = false
+                    Task { // async context
+                        do {
+                            try await friendRequests.sendRequest(targetID: friendUserID)
+                            friendUserID = ""
+                            sent = true
+                        } catch {
+                            print("❌ Failed to send friend request:", error.localizedDescription)
+                            sent = false
+                        }
                     }
                 } label: {
                     Label("Send friend request", systemImage: "paperplane.fill")
                 }
                 .disabled(friendUserID.isEmpty)
-
-
-
 
                 if sent {
                     Text("Friend request sent")
@@ -56,7 +53,13 @@ struct BuddyListView: View {
                         }
                         .swipeActions {
                             Button(role: .destructive) {
-                                buddyService.removeBuddy(buddy)
+                                Task { // async context
+                                    do {
+                                        try await buddyService.removeBuddy(buddy)
+                                    } catch {
+                                        print("❌ Failed to remove buddy:", error.localizedDescription)
+                                    }
+                                }
                             } label: {
                                 Label("Remove", systemImage: "trash")
                             }

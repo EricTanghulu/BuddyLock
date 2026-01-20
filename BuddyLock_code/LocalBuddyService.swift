@@ -33,8 +33,9 @@ final class LocalBuddyService: ObservableObject {
 
     // MARK: - Listen to current user's buddies only
     private func startListening() {
-        listener = db.collection(collection)
-            .whereField("ownerID", isEqualTo: currentUserID)
+        listener = db.collection("users")
+            .document(currentUserID)
+            .collection("friends")
             .order(by: "buddyUserID")
             .addSnapshotListener { [weak self] snapshot, error in
                 guard let self, let documents = snapshot?.documents else { return }

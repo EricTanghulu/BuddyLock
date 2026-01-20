@@ -14,7 +14,6 @@ import FirebaseAuth
 struct FriendRequest: Identifiable, Codable {
     @DocumentID var id: String?
     let fromUserID: String
-    let toUserID: String
     let status: String   // "pending"
     let timestamp: Date
 }
@@ -37,7 +36,7 @@ final class FriendRequestService: ObservableObject {
         self.currentUserID = Auth.auth().currentUser?.uid ?? "unknown"
         self.buddyService = buddyService
         if let user = Auth.auth().currentUser {
-            print("UID:", user.uid)
+            print("Friend Request UID:", user.uid)
         } else {
             print("Not signed in!")
         }
@@ -51,8 +50,9 @@ final class FriendRequestService: ObservableObject {
 
     // MARK: - Listen for pending incoming requests
     private func startListening() {
-        listener = db.collection("friendRequests")
-            .whereField("toUserID", isEqualTo: currentUserID)
+        listener = db.collection("users")
+            .document(currentUserID)
+            .collection("friendRequests")
             .whereField("status", isEqualTo: "pending")
             .order(by: "timestamp", descending: true)
             .addSnapshotListener { [weak self] snapshot, error in
@@ -69,16 +69,72 @@ final class FriendRequestService: ObservableObject {
     }
 
     // MARK: - Send friend request
-    func sendRequest(toUserID: String) throws {
-        let request = FriendRequest(
-            fromUserID: currentUserID,
-            toUserID: toUserID,
-            status: "pending",
-            timestamp: Date()
-        )
+    func sendRequest(targetID: String) async throws {
+        print("gonna crash out")
+        if let user = Auth.auth().currentUser {
+            print("check in. fr rules, Current UID:", user.uid)
+        } else {
+            print("Not signed in")
+        }
+        guard targetID != currentUserID else {
+            throw NSError(domain: "FriendRequest", code: 400,
+                          userInfo: [NSLocalizedDescriptionKey: "Cannot friend yourself"])
+        }
+        
+        let targetSnapshot = try await db.collection("usernames")
+            .document(targetID)
+            .getDocument()
+        
 
-        try db.collection("friendRequests").addDocument(from: request)
+        guard let targetUID = targetSnapshot.data()?["uid"] as? String else {
+            throw NSError(domain: "FriendRequest", code: 404, userInfo: [NSLocalizedDescriptionKey: "User not found"])
+        }
+
+        print("check 1. r they alr buddies")
+        // 1️⃣ Check if already friends
+        let friendDoc = try await db.collection("users")
+            .document(currentUserID)
+            .collection("friends")
+            .document(targetUID)
+            .getDocument()
+        if friendDoc.exists {
+            throw NSError(domain: "FriendRequest", code: 400,
+                          userInfo: [NSLocalizedDescriptionKey: "You are already friends"])
+        }
+
+        print("check 2. is req alr sente")
+        // 2️⃣ Check if request already sent
+        let requestDoc = try await db.collection("users")
+            .document(targetUID)
+            .collection("friendRequests")
+            .document(currentUserID)
+            .getDocument()
+        if requestDoc.exists {
+            throw NSError(domain: "FriendRequest", code: 400,
+                          userInfo: [NSLocalizedDescriptionKey: "Friend request already sent"])
+        }
+        
+        print("hi ???")
+
+        if let user = Auth.auth().currentUser {
+            print("check in. fr rules, Current UID:", user.uid)
+        } else {
+            print("Not signed in")
+        }
+
+        // ✅ Write friend request
+        try await db.collection("users")
+            .document(targetUID)
+            .collection("friendRequests")
+            .document(currentUserID)
+            .setData([
+                "fromUserID": currentUserID,
+                "status": "pending",
+                "timestamp": Timestamp()
+            ])
     }
+
+
 
 
     // MARK: - Accept request
@@ -93,7 +149,9 @@ final class FriendRequestService: ObservableObject {
         )
 
         // 2️⃣ Mark request as accepted
-        db.collection("friendRequests")
+        db.collection("users")
+            .document(currentUserID)
+            .collection("friendRequests")
             .document(requestID)
             .updateData(["status": "accepted"])
     }
