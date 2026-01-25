@@ -3,9 +3,11 @@ import FirebaseFirestore
 
 // MARK: - changing to firebase buddy
 
+
 struct LocalBuddy: Identifiable, Codable, Hashable {
     var id: UUID = UUID()                 // local-only
     
+    // 1. This automatically grabs the Firestore Document Name (ID)
     @DocumentID var remoteID: String?     // buddy doc ID
     var buddyUserID: String               // friend's auth UID
     var displayName: String? = nil
@@ -56,11 +58,48 @@ final class LocalBuddyService: ObservableObject {
                             print("Data:", doc.data())
                         }
 
-                        self?.buddies = snapshot.documents.compactMap {
-                            try? $0.data(as: LocalBuddy.self)
-                        }
+                        var loadedBuddies: [LocalBuddy] = []
 
-                        print("✅ Decoded buddies:", self?.buddies ?? [])
+                
+        // change this later -> rn it maps the firebase buddy with weird logic but once local + firestore matches just mpa directly
+                for document in snapshot.documents {
+                    // 1. Get the document ID (e.g., "user_123")
+                    let docID = document.documentID
+                    
+                    // 2. Manually create the LocalBuddy object
+                    // We map docID to both remoteID and buddyUserID
+                    let buddy = LocalBuddy(
+                        buddyUserID: docID,
+                        displayName: docID // You can force this to empty string as requested
+                    )
+                    
+                    loadedBuddies.append(buddy)
+                    print("✅ Manually loaded:", buddy.buddyUserID)
+                }
+
+                guard let self = self else { return }
+                self.buddies = loadedBuddies
+                print("✅ Decoded buddies:", self.buddies)
+//
+//                        for document in snapshot.documents {
+//                            do {
+//                                let buddy = try document.data(as: LocalBuddy.self)
+//                                loadedBuddies.append(buddy)
+//                                print("Loaded buddy:", buddy.buddyUserID, "docID:", buddy.remoteID ?? "nil")
+//                            } catch {
+//                                print("❌ Failed to decode buddy from document \(document.documentID):", error)
+//                            }
+//                        }
+//                
+//                        guard let self = self else { return }
+//                        
+//                        if let error = error {
+//                            print("❌ Snapshot listener error:", error)
+//                            return
+//                        }
+//                
+//                        self.buddies = loadedBuddies
+//                        print("✅ Decoded buddies:", self.buddies)
                     }
     }
 
