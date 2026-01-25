@@ -138,30 +138,49 @@ final class FriendRequestService: ObservableObject {
 
 
     // MARK: - Accept request
-    func accept(_ request: FriendRequest) {
-        guard let requestID = request.id else { return }
+    func accept(_ request: FriendRequest) async throws {
+        guard let senderID = request.id else { return }
 
-        // 1️⃣ Add buddy (remoteID = sender)
-        buddyService.addBuddy(
-            LocalBuddy(
-                buddyUserID: request.fromUserID,
-            )
-        )
+        let batch = db.batch()
 
-        // 2️⃣ Mark request as accepted
-        db.collection("users")
+        let myFriendsRef = db.collection("users")
+            .document(currentUserID)
+            .collection("friends")
+            .document(senderID)
+
+        let senderFriendsRef = db.collection("users")
+            .document(senderID)
+            .collection("friends")
+            .document(currentUserID)
+
+        let requestRef = db.collection("users")
             .document(currentUserID)
             .collection("friendRequests")
-            .document(requestID)
-            .updateData(["status": "accepted"])
+            .document(senderID)
+
+        batch.setData([
+            "since": Timestamp()
+        ], forDocument: myFriendsRef)
+
+        batch.setData([
+            "since": Timestamp()
+        ], forDocument: senderFriendsRef)
+
+        batch.deleteDocument(requestRef)
+
+        try await batch.commit()
     }
+
 
     // MARK: - Reject request
-    func reject(_ request: FriendRequest) {
-        guard let requestID = request.id else { return }
+    func reject(_ request: FriendRequest) async throws {
+        guard let senderID = request.id else { return }
 
-        db.collection("friendRequests")
-            .document(requestID)
-            .updateData(["status": "rejected"])
+        try await db.collection("users")
+            .document(currentUserID)
+            .collection("friendRequests")
+            .document(senderID)
+            .delete()
     }
+
 }

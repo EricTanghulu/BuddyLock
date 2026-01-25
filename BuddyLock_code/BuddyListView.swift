@@ -38,6 +38,44 @@ struct BuddyListView: View {
                         .foregroundStyle(.green)
                 }
             }
+            // MARK: - Pending friend requests
+            if !friendRequests.incomingRequests.isEmpty {
+                Section("Pending Requests") {
+                    ForEach(friendRequests.incomingRequests) { request in
+                        HStack {
+                            Text(request.fromUserID) // later: username / displayName
+                                .font(.subheadline)
+
+                            Spacer()
+
+                            Button("Accept") {
+                                Task {
+                                    do {
+                                        try await friendRequests.accept(request)
+                                    } catch {
+                                        print("❌ Failed to accept:", error.localizedDescription)
+                                    }
+                                }
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .tint(.green)
+
+                            Button("Deny") {
+                                Task {
+                                    do {
+                                        try await friendRequests.reject(request)
+                                    } catch {
+                                        print("❌ Failed to reject request:", error.localizedDescription)
+                                    }
+                                }
+                            }
+
+                            .buttonStyle(.bordered)
+                            .tint(.red)
+                        }
+                    }
+                }
+            }
 
             // MARK: - Buddy list
             Section("Your Buddies") {
@@ -53,13 +91,7 @@ struct BuddyListView: View {
                         }
                         .swipeActions {
                             Button(role: .destructive) {
-                                Task { // async context
-                                    do {
-                                        try await buddyService.removeBuddy(buddy)
-                                    } catch {
-                                        print("❌ Failed to remove buddy:", error.localizedDescription)
-                                    }
-                                }
+                                buddyService.removeBuddy(buddy)
                             } label: {
                                 Label("Remove", systemImage: "trash")
                             }
