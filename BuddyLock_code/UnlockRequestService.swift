@@ -19,13 +19,18 @@ struct UnlockRequest: Identifiable, Codable, Hashable {
     let minutesRequested: Int
     let reason: String?
 
-    let createdAt: Timestamp
 
     var decision: UnlockRequestDecision
     var approvedMinutes: Int?
+    @ServerTimestamp var createdAt: Timestamp?
+
 }
 extension UnlockRequest {
     var stableID: String { id ?? UUID().uuidString }
+    var createdDate: Date {
+        createdAt?.dateValue() ?? Date() // fallback to now
+    }
+
 }
 
 
@@ -72,9 +77,10 @@ final class UnlockRequestService: ObservableObject {
             buddyID: buddyID,
             minutesRequested: clamped,
             reason: reason?.trimmingCharacters(in: .whitespacesAndNewlines),
-            createdAt: Timestamp(),
+            
             decision: .pending,
-            approvedMinutes: nil
+            approvedMinutes: nil,
+            createdAt: nil,
         )
 
         do {

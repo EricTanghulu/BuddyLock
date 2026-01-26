@@ -69,6 +69,7 @@ final class LocalBuddyService: ObservableObject {
                     // 2. Manually create the LocalBuddy object
                     // We map docID to both remoteID and buddyUserID
                     let buddy = LocalBuddy(
+                        remoteID: docID,
                         buddyUserID: docID,
                         displayName: docID // You can force this to empty string as requested
                     )

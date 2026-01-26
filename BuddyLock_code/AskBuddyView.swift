@@ -94,7 +94,7 @@ struct AskBuddyView: View {
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             } else {
-                ForEach(requestService.outgoing.sorted { $0.createdAt.dateValue() > $1.createdAt.dateValue() }, id: \.stableID) { r in
+                ForEach(requestService.outgoing.sorted { $0.createdDate > $1.createdDate }, id: \.stableID) { r in
                     VStack(alignment: .leading, spacing: 4) {
                         HStack {
                             Text("\(r.minutesRequested) minute\(r.minutesRequested == 1 ? "" : "s")")
@@ -117,7 +117,7 @@ struct AskBuddyView: View {
                                 .foregroundStyle(.secondary)
                         }
 
-                        Text(relativeDateString(from: r.createdAt.dateValue()))
+                        Text(relativeDateString(from: r.createdDate))
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                     }
@@ -141,6 +141,7 @@ struct AskBuddyView: View {
         let buddy = buddyService.buddies[selectedBuddyIndex.clamped(to: 0..<(buddyService.buddies.count))]
         let name = displayName.isEmpty ? "You" : displayName
 
+        print(buddy)
         guard let buddyID = buddy.remoteID else {
             print("Error: buddy has no remoteID")
             return

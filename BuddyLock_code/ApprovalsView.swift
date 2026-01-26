@@ -45,7 +45,7 @@ struct ApprovalsView: View {
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             } else {
-                ForEach(requestService.incoming.sorted(by: { $0.createdAt.dateValue() > $1.createdAt.dateValue() })) { r in
+                ForEach(requestService.incoming.sorted(by: { $0.createdDate > $1.createdDate })) { r in
                     VStack(alignment: .leading, spacing: 6) {
                         HStack {
                             Text(r.requesterName)
@@ -70,7 +70,7 @@ struct ApprovalsView: View {
                                 .foregroundStyle(.secondary)
                         }
 
-                        Text(relativeDateString(from: r.createdAt.dateValue()))
+                        Text(relativeDateString(from: r.createdDate))
                             .font(.caption2)
                             .foregroundStyle(.secondary)
 
@@ -116,7 +116,7 @@ struct ApprovalsView: View {
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             } else {
-                ForEach(requestService.outgoing.sorted(by: { $0.createdAt.dateValue() > $1.createdAt.dateValue() })) { r in
+                ForEach(requestService.outgoing.sorted(by: { $0.createdDate > $1.createdDate })) { r in
                     VStack(alignment: .leading, spacing: 4) {
                         HStack {
                             Text("\(r.minutesRequested) minute\(r.minutesRequested == 1 ? "" : "s")")
@@ -137,7 +137,7 @@ struct ApprovalsView: View {
                                 .foregroundStyle(.secondary)
                         }
 
-                        Text(relativeDateString(from: r.createdAt.dateValue()))
+                        Text(relativeDateString(from: r.createdDate))
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                     }
