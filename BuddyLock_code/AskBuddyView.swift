@@ -5,7 +5,7 @@ import FamilyControls
 
 struct AskBuddyView: View {
     @ObservedObject var buddyService: LocalBuddyService
-    @ObservedObject var requestService: LocalUnlockRequestService
+    @ObservedObject var requestService: UnlockRequestService
 
     @EnvironmentObject var screenTime: ScreenTimeManager
 
@@ -94,7 +94,7 @@ struct AskBuddyView: View {
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             } else {
-                ForEach(requestService.outgoing.sorted(by: { $0.createdAt > $1.createdAt })) { r in
+                ForEach(requestService.outgoing.sorted { $0.createdAt.dateValue() > $1.createdAt.dateValue() }, id: \.stableID) { r in
                     VStack(alignment: .leading, spacing: 4) {
                         HStack {
                             Text("\(r.minutesRequested) minute\(r.minutesRequested == 1 ? "" : "s")")
@@ -105,7 +105,7 @@ struct AskBuddyView: View {
                             StatusPill(req: r)
                         }
 
-                        if let buddy = buddyService.buddies.first(where: { $0.id == r.buddyID }) {
+                        if let buddy = buddyService.buddies.first(where: { $0.remoteID == r.buddyID }) {
                             Text("To: \(buddy.displayName)")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
@@ -117,7 +117,7 @@ struct AskBuddyView: View {
                                 .foregroundStyle(.secondary)
                         }
 
-                        Text(relativeDateString(from: r.createdAt))
+                        Text(relativeDateString(from: r.createdAt.dateValue()))
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                     }
@@ -141,9 +141,14 @@ struct AskBuddyView: View {
         let buddy = buddyService.buddies[selectedBuddyIndex.clamped(to: 0..<(buddyService.buddies.count))]
         let name = displayName.isEmpty ? "You" : displayName
 
+        guard let buddyID = buddy.remoteID else {
+            print("Error: buddy has no remoteID")
+            return
+        }
+        
         requestService.sendRequest(
             requesterName: name,
-            buddyID: buddy.id,
+            buddyID: buddyID,
             minutes: minutes,
             reason: reason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : reason
         )
@@ -168,7 +173,7 @@ private extension Int {
 }
 
 private struct StatusPill: View {
-    let req: LocalUnlockRequest
+    let req: UnlockRequest
 
     var body: some View {
         switch req.decision {

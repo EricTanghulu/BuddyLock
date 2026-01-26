@@ -80,7 +80,7 @@ final class LocalBuddyService: ObservableObject {
                 guard let self = self else { return }
                 self.buddies = loadedBuddies
                 print("✅ Decoded buddies:", self.buddies)
-//
+//                  below is the correct buddylock code for when db + local match :)
 //                        for document in snapshot.documents {
 //                            do {
 //                                let buddy = try document.data(as: LocalBuddy.self)

@@ -3,7 +3,7 @@ import SwiftUI
 struct FriendsHubView: View {
     @ObservedObject var buddyService: LocalBuddyService
     @ObservedObject var friendRequestService: FriendRequestService
-    @ObservedObject var requestService: LocalUnlockRequestService
+    @ObservedObject var requestService: UnlockRequestService
     @EnvironmentObject var screenTime: ScreenTimeManager
 
     var body: some View {

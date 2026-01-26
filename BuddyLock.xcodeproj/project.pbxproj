@@ -22,7 +22,7 @@
 		0CFDC9B02F0DC3B3007CEEBE /* FriendRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CFDC9AF2F0DC3B3007CEEBE /* FriendRequest.swift */; };
 		311CCA7F2E59822300E4E9B1 /* ApprovalsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 311CCA7E2E59822000E4E9B1 /* ApprovalsView.swift */; };
 		311CCA812E59823500E4E9B1 /* AskBuddyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 311CCA802E59823300E4E9B1 /* AskBuddyView.swift */; };
-		311CCA832E59825300E4E9B1 /* LocalUnlockRequestService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 311CCA822E59824F00E4E9B1 /* LocalUnlockRequestService.swift */; };
+		311CCA832E59825300E4E9B1 /* UnlockRequestService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 311CCA822E59824F00E4E9B1 /* UnlockRequestService.swift */; };
 		311CCA862E59827800E4E9B1 /* LocalBuddyService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 311CCA852E59827200E4E9B1 /* LocalBuddyService.swift */; };
 		311CCA872E59846700E4E9B1 /* BuddyData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 318DD9D12E559D0B00A578A8 /* BuddyData.swift */; };
 		311CCA892E598C7500E4E9B1 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 311CCA882E598C7300E4E9B1 /* SettingsView.swift */; };
@@ -93,7 +93,7 @@
 		0CFDC9AF2F0DC3B3007CEEBE /* FriendRequest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FriendRequest.swift; sourceTree = "<group>"; };
 		311CCA7E2E59822000E4E9B1 /* ApprovalsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApprovalsView.swift; sourceTree = "<group>"; };
 		311CCA802E59823300E4E9B1 /* AskBuddyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AskBuddyView.swift; sourceTree = "<group>"; };
-		311CCA822E59824F00E4E9B1 /* LocalUnlockRequestService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalUnlockRequestService.swift; sourceTree = "<group>"; };
+		311CCA822E59824F00E4E9B1 /* UnlockRequestService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnlockRequestService.swift; sourceTree = "<group>"; };
 		311CCA852E59827200E4E9B1 /* LocalBuddyService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalBuddyService.swift; sourceTree = "<group>"; };
 		311CCA882E598C7300E4E9B1 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		313B2B612EDAD6B300F59DD1 /* EditProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditProfileView.swift; sourceTree = "<group>"; };
@@ -301,7 +301,7 @@
 				316451E62ED918B300CECA7D /* MainTabView.swift */,
 				311CCA852E59827200E4E9B1 /* LocalBuddyService.swift */,
 				0CFDC9AF2F0DC3B3007CEEBE /* FriendRequest.swift */,
-				311CCA822E59824F00E4E9B1 /* LocalUnlockRequestService.swift */,
+				311CCA822E59824F00E4E9B1 /* UnlockRequestService.swift */,
 				316451EE2ED9193800CECA7D /* ProfileView.swift */,
 				311CCA802E59823300E4E9B1 /* AskBuddyView.swift */,
 				311CCA7E2E59822000E4E9B1 /* ApprovalsView.swift */,
@@ -490,7 +490,7 @@
 				313B2B642EDAD6CE00F59DD1 /* ScreenTimeDefaultsSettingsView.swift in Sources */,
 				316451EF2ED9193800CECA7D /* ProfileView.swift in Sources */,
 				316451E72ED918B300CECA7D /* MainTabView.swift in Sources */,
-				311CCA832E59825300E4E9B1 /* LocalUnlockRequestService.swift in Sources */,
+				311CCA832E59825300E4E9B1 /* UnlockRequestService.swift in Sources */,
 				313B2B622EDAD6B300F59DD1 /* EditProfileView.swift in Sources */,
 				A00000000000000000000013 /* ScreenTimeManager.swift in Sources */,
 				311CCA892E598C7500E4E9B1 /* SettingsView.swift in Sources */,

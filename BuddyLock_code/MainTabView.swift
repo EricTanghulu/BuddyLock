@@ -18,7 +18,7 @@ struct MainTabView: View {
 
     @StateObject private var buddyService: LocalBuddyService
     @StateObject private var friendRequestService: FriendRequestService
-    @StateObject private var requestService = LocalUnlockRequestService()
+    @StateObject private var requestService = UnlockRequestService()
     @StateObject private var challengesService = ChallengeService()
 
     

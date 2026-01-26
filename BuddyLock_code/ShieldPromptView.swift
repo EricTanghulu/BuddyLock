@@ -3,7 +3,7 @@ import SwiftUI
 struct ShieldPromptView: View {
     @EnvironmentObject var screenTime: ScreenTimeManager
     @ObservedObject var buddyService: LocalBuddyService
-    @ObservedObject var requestService: LocalUnlockRequestService
+    @ObservedObject var requestService: UnlockRequestService
     @ObservedObject var challengesService: ChallengeService
 
     @AppStorage("BuddyLock.displayName")
@@ -248,7 +248,7 @@ import FirebaseAuth
                                      buddyUserID: "buddyID"               // friend's auth UID
                                      , displayName: "Buddy"))
 
-    let requestService = LocalUnlockRequestService()
+    let requestService = UnlockRequestService()
 
     let challengesService = ChallengeService()
     // If you have APIs to add mock challenges, you could do it here,

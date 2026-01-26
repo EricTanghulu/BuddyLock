@@ -5,14 +5,14 @@ import FamilyControls
 
 struct ApprovalsView: View {
     @ObservedObject var buddyService: LocalBuddyService
-    @ObservedObject var requestService: LocalUnlockRequestService
+    @ObservedObject var requestService: UnlockRequestService
 
     @EnvironmentObject var screenTime: ScreenTimeManager
 
     /// Fallback: general approve callback (kept for compatibility)
     var onApprove: (Int) -> Void
 
-    @State private var approvingRequest: LocalUnlockRequest?
+    @State private var approvingRequest: UnlockRequest?
     @State private var approveMinutes: Int = 10
 
     var body: some View {
@@ -45,7 +45,7 @@ struct ApprovalsView: View {
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             } else {
-                ForEach(requestService.incoming.sorted(by: { $0.createdAt > $1.createdAt })) { r in
+                ForEach(requestService.incoming.sorted(by: { $0.createdAt.dateValue() > $1.createdAt.dateValue() })) { r in
                     VStack(alignment: .leading, spacing: 6) {
                         HStack {
                             Text(r.requesterName)
@@ -58,7 +58,7 @@ struct ApprovalsView: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
 
-                        if let buddy = buddyService.buddies.first(where: { $0.id == r.buddyID }) {
+                        if let buddy = buddyService.buddies.first(where: { $0.remoteID == r.buddyID }) {
                             Text("Buddy: \(buddy.displayName)")
                                 .font(.caption2)
                                 .foregroundStyle(.secondary)
@@ -70,14 +70,19 @@ struct ApprovalsView: View {
                                 .foregroundStyle(.secondary)
                         }
 
-                        Text(relativeDateString(from: r.createdAt))
+                        Text(relativeDateString(from: r.createdAt.dateValue()))
                             .font(.caption2)
                             .foregroundStyle(.secondary)
 
                         if r.decision == .pending {
                             HStack {
+                                
                                 Button(role: .destructive) {
-                                    requestService.deny(requestID: r.id)
+                                    guard let requestID = r.id else {
+                                        print("Error: request has no ID")
+                                        return
+                                    }
+                                    requestService.deny(requestID: requestID)
                                 } label: {
                                     Text("Deny")
                                 }
@@ -111,7 +116,7 @@ struct ApprovalsView: View {
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             } else {
-                ForEach(requestService.outgoing.sorted(by: { $0.createdAt > $1.createdAt })) { r in
+                ForEach(requestService.outgoing.sorted(by: { $0.createdAt.dateValue() > $1.createdAt.dateValue() })) { r in
                     VStack(alignment: .leading, spacing: 4) {
                         HStack {
                             Text("\(r.minutesRequested) minute\(r.minutesRequested == 1 ? "" : "s")")
@@ -120,7 +125,7 @@ struct ApprovalsView: View {
                             StatusPill(req: r)
                         }
 
-                        if let buddy = buddyService.buddies.first(where: { $0.id == r.buddyID }) {
+                        if let buddy = buddyService.buddies.first(where: { $0.remoteID == r.buddyID }) {
                             Text("To: \(buddy.displayName)")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
@@ -132,7 +137,7 @@ struct ApprovalsView: View {
                                 .foregroundStyle(.secondary)
                         }
 
-                        Text(relativeDateString(from: r.createdAt))
+                        Text(relativeDateString(from: r.createdAt.dateValue()))
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                     }
@@ -146,7 +151,7 @@ struct ApprovalsView: View {
 
     // MARK: - Approve sheet
 
-    private func approveSheet(for req: LocalUnlockRequest) -> some View {
+    private func approveSheet(for req: UnlockRequest) -> some View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 16) {
                 Text("Approve unlock for \(req.requesterName)?")
@@ -189,12 +194,19 @@ struct ApprovalsView: View {
 
     // MARK: - Actions
 
-    private func approve(_ req: LocalUnlockRequest, minutes: Int) {
+    private func approve(_ req: UnlockRequest, minutes: Int) {
         let clamped = max(1, minutes)
         // Grant the actual exception now
         screenTime.grantTemporaryException(minutes: clamped)
         // Update our local store to mark it approved
-        requestService.approve(requestID: req.id, minutes: clamped)
+        
+        guard let requestID = req.id else {
+            print("Error: request has no ID")
+            return
+        }
+
+        requestService.approve(requestID: requestID, minutes: clamped)
+
         // And call the fallback callback (for compatibility)
         onApprove(clamped)
     }
@@ -209,7 +221,7 @@ struct ApprovalsView: View {
 // Reuse StatusPill from above
 
 private struct StatusPill: View {
-    let req: LocalUnlockRequest
+    let req: UnlockRequest
     var body: some View {
         switch req.decision {
         case .pending:
