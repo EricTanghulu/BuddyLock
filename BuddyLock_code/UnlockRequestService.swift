@@ -147,7 +147,16 @@ final class UnlockRequestService: ObservableObject {
         } else {
             data["approvedMinutes"] = FieldValue.delete()
         }
+        
 
+        if let currentUID = Auth.auth().currentUser?.uid {
+            print("Logged-in user UID: \(currentUID)")
+        } else {
+            print("No user is logged in")
+        }
+
+        print(data)
+        print(requestID)
         db.collection("unlockRequests")
             .document(requestID)
             .updateData(data)
