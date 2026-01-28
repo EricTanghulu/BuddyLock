@@ -160,6 +160,7 @@ final class ScreenTimeManager: ObservableObject {
         #if canImport(FamilyControls)
         do {
             try await AuthorizationCenter.shared.requestAuthorization(for: .individual)
+            print("hello")
             await refreshAuthorizationState()
         } catch {
             print("ScreenTimeManager: Authorization error: \(error)")
@@ -173,10 +174,24 @@ final class ScreenTimeManager: ObservableObject {
 
     func refreshAuthorizationState() async {
         #if canImport(FamilyControls)
-        let status = await AuthorizationCenter.shared.authorizationStatus
+        print("can import family controls")
+        do {
+            try await AuthorizationCenter.shared.requestAuthorization(for: .individual)
+            print("✅ requestAuthorization returned")
+
+        } catch {
+            print("❌ requestAuthorization threw:", error)
+        }
+        let after = AuthorizationCenter.shared.authorizationStatus
+            print("🔍 Status AFTER request:", after)
+        
+
         await MainActor.run {
+            print("Status:", AuthorizationCenter.shared.authorizationStatus)
+            let status = AuthorizationCenter.shared.authorizationStatus
             self.isAuthorized = (status == .approved)
         }
+        print("isAuthorized is (p2)...", isAuthorized)
         #else
         isAuthorized = false
         #endif
