@@ -1,41 +1,97 @@
 import SwiftUI
 
 struct BuddyListView: View {
-    @ObservedObject var service: LocalBuddyService
-    @State private var newName: String = ""
+    @ObservedObject var buddyService: LocalBuddyService
+    @ObservedObject var friendRequests: FriendRequestService
+
+    @State private var friendUserID: String = ""
+    @State private var sent = false
 
     var body: some View {
         Form {
+
+            // MARK: - Send friend request
             Section("Add Buddy") {
-                HStack {
-                    TextField("Display name", text: $newName)
-                    Button {
-                        service.addBuddy(name: newName)
-                        newName = ""
-                    } label: {
-                        Label("Add", systemImage: "plus.circle.fill")
+                TextField("Friend's user ID", text: $friendUserID)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+
+                Button {
+                    Task { // async context
+                        do {
+                            try await friendRequests.sendRequest(targetID: friendUserID)
+                            friendUserID = ""
+                            sent = true
+                        } catch {
+                            print("❌ Failed to send friend request:", error.localizedDescription)
+                            sent = false
+                        }
                     }
-                    .disabled(newName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                } label: {
+                    Label("Send friend request", systemImage: "paperplane.fill")
                 }
-                Text("Buddies you add here can approve short exceptions (demo) and join challenges later.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                .disabled(friendUserID.isEmpty)
+
+                if sent {
+                    Text("Friend request sent")
+                        .font(.footnote)
+                        .foregroundStyle(.green)
+                }
+            }
+            // MARK: - Pending friend requests
+            if !friendRequests.incomingRequests.isEmpty {
+                Section("Pending Requests") {
+                    ForEach(friendRequests.incomingRequests) { request in
+                        HStack {
+                            Text(request.fromUserID) // later: username / displayName
+                                .font(.subheadline)
+
+                            Spacer()
+
+                            Button("Accept") {
+                                Task {
+                                    do {
+                                        try await friendRequests.accept(request)
+                                    } catch {
+                                        print("❌ Failed to accept:", error.localizedDescription)
+                                    }
+                                }
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .tint(.green)
+
+                            Button("Deny") {
+                                Task {
+                                    do {
+                                        try await friendRequests.reject(request)
+                                    } catch {
+                                        print("❌ Failed to reject request:", error.localizedDescription)
+                                    }
+                                }
+                            }
+
+                            .buttonStyle(.bordered)
+                            .tint(.red)
+                        }
+                    }
+                }
             }
 
+            // MARK: - Buddy list
             Section("Your Buddies") {
-                if service.buddies.isEmpty {
-                    Text("No buddies yet. Add one above.")
+                if buddyService.buddies.isEmpty {
+                    Text("No buddies yet.")
                         .foregroundStyle(.secondary)
                 } else {
-                    ForEach(service.buddies) { buddy in
+                    ForEach(buddyService.buddies) { buddy in
                         HStack {
                             Image(systemName: "person.fill")
-                            Text(buddy.displayName)
+                            Text(buddy.displayName ?? buddy.buddyUserID)
                             Spacer()
                         }
                         .swipeActions {
                             Button(role: .destructive) {
-                                service.removeBuddy(buddy)
+                                buddyService.removeBuddy(buddy)
                             } label: {
                                 Label("Remove", systemImage: "trash")
                             }

@@ -16,10 +16,12 @@ enum CreateDestination: Identifiable {
 struct MainTabView: View {
     @EnvironmentObject var screenTime: ScreenTimeManager
 
-    @StateObject private var buddyService = LocalBuddyService()
-    @StateObject private var requestService = LocalUnlockRequestService()
+    @StateObject private var buddyService: LocalBuddyService
+    @StateObject private var friendRequestService: FriendRequestService
+    @StateObject private var requestService = UnlockRequestService()
     @StateObject private var challengesService = ChallengeService()
 
+    
     // For handling the middle "+" behavior
     @State private var selectedTab: Int = 0
     @State private var lastNonCreateTab: Int = 0
@@ -30,6 +32,12 @@ struct MainTabView: View {
     // The currently active full-screen destination (New Challenge / New Moment)
     @State private var activeCreateDestination: CreateDestination?
 
+    init() {
+        let buddyService = LocalBuddyService()
+        _buddyService = StateObject(wrappedValue: buddyService)
+        _friendRequestService = StateObject(wrappedValue: FriendRequestService(buddyService: buddyService))
+    }
+    
     var body: some View {
         ZStack {
             // ---------- MAIN TABS ----------
@@ -37,7 +45,12 @@ struct MainTabView: View {
 
                 // 1) HOME TAB
                 NavigationStack {
-                    HomeView(challengesService: challengesService)
+                    HomeView(
+                        challengesService: challengesService,
+                        leaderboardEntries: [],
+                        socialPosts: [],
+                        stories: []
+                    )
                 }
                 .tabItem {
                     Image(systemName: "house.fill")
@@ -70,6 +83,7 @@ struct MainTabView: View {
                 NavigationStack {
                     FriendsHubView(
                         buddyService: buddyService,
+                        friendRequestService: friendRequestService,
                         requestService: requestService
                     )
                 }

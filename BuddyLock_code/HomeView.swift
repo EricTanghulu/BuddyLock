@@ -3,9 +3,40 @@ import SwiftUI
 import FamilyControls
 #endif
 
+// MARK: - Lightweight models for the home screen
+
+struct LeaderboardEntry: Identifiable, Hashable {
+    let id = UUID()
+    let rank: Int
+    let displayName: String
+    let totalMinutes: Int
+    let isCurrentUser: Bool
+}
+
+struct Story: Identifiable, Hashable {
+    let id = UUID()
+    let userName: String
+    let isCurrentUser: Bool
+    let isNew: Bool
+}
+
+struct SocialPost: Identifiable, Hashable {
+    let id = UUID()
+    let userName: String
+    let caption: String
+    let createdAt: Date
+}
+
+// MARK: - Home View
+
 struct HomeView: View {
     @EnvironmentObject var screenTime: ScreenTimeManager
     @ObservedObject var challengesService: ChallengeService
+
+    // For now these are passed in from MainTabView so Home doesn’t invent fake data.
+    var leaderboardEntries: [LeaderboardEntry]
+    var socialPosts: [SocialPost]
+    var stories: [Story]
 
     @AppStorage("BuddyLock.displayName")
     private var displayName: String = ""
@@ -13,127 +44,58 @@ struct HomeView: View {
     @AppStorage("BuddyLock.didPromptForAuthorization")
     private var didPromptForAuthorization = false
 
-    // UI state for focus controls
-    @State private var showPicker = false
-    @State private var focusMinutes: Int = 30
-    @State private var scheduleEnabled: Bool = false
-    @State private var scheduledStart: Date =
-        Calendar.current.date(byAdding: .minute, value: 15, to: Date())
-        ?? Date().addingTimeInterval(900)
-
-    // Leaderboard UI state
-    @State private var isLeaderboardExpanded = false
-
-    // MARK: - Data models
-
-    struct LeaderboardEntry: Identifiable {
-        let id: UUID
-        let displayName: String
-        let scoreMinutes: Int
-        let isCurrentUser: Bool
-
-        init(
-            id: UUID = UUID(),
-            displayName: String,
-            scoreMinutes: Int,
-            isCurrentUser: Bool = false
-        ) {
-            self.id = id
-            self.displayName = displayName
-            self.scoreMinutes = scoreMinutes
-            self.isCurrentUser = isCurrentUser
-        }
-    }
-
-    struct SocialPost: Identifiable {
-        let id: UUID
-        let authorName: String
-        let challengeTitle: String
-        let caption: String
-        let timestamp: Date
-
-        init(
-            id: UUID = UUID(),
-            authorName: String,
-            challengeTitle: String,
-            caption: String,
-            timestamp: Date
-        ) {
-            self.id = id
-            self.authorName = authorName
-            self.challengeTitle = challengeTitle
-            self.caption = caption
-            self.timestamp = timestamp
-        }
-    }
-
-    struct Story: Identifiable {
-        let id: UUID
-        let authorName: String
-        let isCurrentUser: Bool
-        let hasUnseenContent: Bool
-
-        init(
-            id: UUID = UUID(),
-            authorName: String,
-            isCurrentUser: Bool = false,
-            hasUnseenContent: Bool = true
-        ) {
-            self.id = id
-            self.authorName = authorName
-            self.isCurrentUser = isCurrentUser
-            self.hasUnseenContent = hasUnseenContent
-        }
-    }
-
-    // MARK: - Input data (plug real data in here later)
-
-    private let leaderboardEntries: [LeaderboardEntry]
-    private let socialPosts: [SocialPost]
-    private let stories: [Story]
-
-    /// Custom init so you can easily inject real data later.
-    /// Existing call sites like `HomeView(challengesService: ...)` still work
-    /// because the other parameters have defaults.
-    init(
-        challengesService: ChallengeService,
-        leaderboardEntries: [LeaderboardEntry] = [],
-        socialPosts: [SocialPost] = [],
-        stories: [Story] = []
-    ) {
-        self.challengesService = challengesService
-        self.leaderboardEntries = leaderboardEntries
-        self.socialPosts = socialPosts
-        self.stories = stories
-    }
-
-    // MARK: - Body
+    // Local UI state
+    @State private var showingBaselinePicker = false
+    @State private var showingCustomFocusSheet = false
+    @State private var customFocusMinutes: Double = 45
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
+
                 headerSection
-                storiesSection
+                    .padding(.horizontal)
+
+                focusControlsSection
+                    .padding(.horizontal)
+
+                appBlockingQuickControlsSection
+                    .padding(.horizontal)
+
                 leaderboardSection
+                    .padding(.horizontal)
+
+                storiesSection
+                    .padding(.horizontal)
+
                 socialFeedSection
-                focusAndSetupSection
+                    .padding(.horizontal)
             }
-            .padding(.horizontal)
-            .padding(.top, 12)
-            .padding(.bottom, 24)
+            .padding(.vertical, 16)
         }
         .navigationTitle("Home")
         .navigationBarTitleDisplayMode(.large)
         .task {
+            // First-launch: politely ask for Screen Time access once
             if !didPromptForAuthorization && !screenTime.isAuthorized {
                 didPromptForAuthorization = true
                 await screenTime.requestAuthorization()
             }
         }
-        .onReceive(NotificationCenter.default.publisher(for: .focusSessionCompleted)) { note in
-            if let minutes = note.userInfo?["minutes"] as? Int {
-                challengesService.recordLocalFocus(minutes: minutes)
+        .sheet(isPresented: $showingBaselinePicker) {
+            #if canImport(FamilyControls)
+            NavigationStack {
+                FamilyActivityPicker(selection: $screenTime.selection)
+                    .navigationTitle("Choose blocked apps")
+                    .navigationBarTitleDisplayMode(.inline)
             }
+            #else
+            Text("Screen Time APIs not available on this device.")
+                .padding()
+            #endif
+        }
+        .sheet(isPresented: $showingCustomFocusSheet) {
+            customFocusSheet
         }
     }
 }
@@ -141,531 +103,496 @@ struct HomeView: View {
 // MARK: - Sections
 
 private extension HomeView {
+
+    // MARK: Header
+
     var headerSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(greetingTitle)
                 .font(.largeTitle.bold())
-            Text("See how your focus stacks up with friends and what everyone’s been up to.")
+
+            Text("Protect your focus, check in with buddies, and share your best challenge moments.")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
+
+            if case .focus = screenTime.activeMode,
+               let remaining = screenTime.focusState.secondsRemaining {
+                Text("In focus: \(formatMinutes(remaining)) left")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            } else if screenTime.isBaselineEnabled {
+                Text("Baseline blocking is on.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
         }
     }
+
+    var greetingTitle: String {
+        let name = displayName.isEmpty ? "there" : displayName
+        let hour = Calendar.current.component(.hour, from: Date())
+
+        switch hour {
+        case 5..<12:
+            return "Good morning, \(name)"
+        case 12..<17:
+            return "Good afternoon, \(name)"
+        default:
+            return "Good evening, \(name)"
+        }
+    }
+
+    // MARK: Focus controls
+
+    var focusControlsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Label("Focus sessions", systemImage: "timer")
+                    .font(.headline)
+                Spacer()
+                currentModeBadge
+            }
+
+            if screenTime.focusState.isActive,
+               let seconds = screenTime.focusState.secondsRemaining {
+                // Active focus session card
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("You’re in a focus session")
+                        .font(.subheadline.weight(.semibold))
+
+                    Text(formatTime(seconds))
+                        .font(.system(size: 40, weight: .bold, design: .rounded))
+
+                    Text("Stay off distractions until the timer hits zero. Your buddies can see your streaks.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+
+                    HStack {
+                        Button(role: .destructive) {
+                            Task {
+                                await screenTime.endFocusSession(completed: false)
+                            }
+                        } label: {
+                            Label("End early", systemImage: "xmark.circle")
+                        }
+
+                        Spacer()
+
+                        Button {
+                            // Panic block on top of current focus if needed
+                            screenTime.startPanicBlock(minutes: 10)
+                        } label: {
+                            Label("I’m tempted", systemImage: "hand.raised.fill")
+                        }
+                    }
+                    .font(.footnote)
+                }
+                .padding()
+                .background(.thinMaterial)
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            } else {
+                // Not in a focus session – offer presets
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Start a focus session to lock down distractions for a bit.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+
+                    HStack(spacing: 12) {
+                        Button {
+                            screenTime.startFocusSession(minutes: 25, warmUpSeconds: 10)
+                        } label: {
+                            focusPresetLabel(title: "Quick focus", detail: "25 min")
+                        }
+
+                        Button {
+                            screenTime.startFocusSession(minutes: 50, warmUpSeconds: 10)
+                        } label: {
+                            focusPresetLabel(title: "Deep focus", detail: "50 min")
+                        }
+                    }
+
+                    Button {
+                        showingCustomFocusSheet = true
+                    } label: {
+                        HStack {
+                            Image(systemName: "slider.horizontal.3")
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Custom session")
+                                    .font(.subheadline.weight(.semibold))
+                                Text("Choose your own focus length")
+                                    .font(.caption)
+                            }
+                            Spacer()
+                        }
+                        .padding()
+                        .background(Color(.systemGray6))
+                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    }
+                }
+            }
+        }
+    }
+
+    func focusPresetLabel(title: String, detail: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(.subheadline.weight(.semibold))
+            Text(detail)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .padding(.vertical, 10)
+        .padding(.horizontal, 12)
+        .frame(maxWidth: .infinity)
+        .background(Color(.systemGray6))
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+
+    var currentModeBadge: some View {
+        HStack(spacing: 6) {
+            Circle()
+                .frame(width: 8, height: 8)
+                .foregroundStyle(screenTime.activeMode == .idle ? .gray.opacity(0.5) : .green)
+
+            Text(modeTitle)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 4)
+        .background(Color(.systemGray6))
+        .clipShape(Capsule())
+    }
+
+    var modeTitle: String {
+        switch screenTime.activeMode {
+        case .idle:
+            return "No active mode"
+        case .baseline:
+            return "Baseline blocking"
+        case .focus:
+            return "Focus session"
+        case .panic:
+            return "Panic block"
+        case .essentialsOnly:
+            return "Study Only mode"
+        }
+    }
+
+    // MARK: App blocking quick controls (baseline / panic / essentials)
+
+    var appBlockingQuickControlsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Label("App blocking", systemImage: "lock.app.fill")
+                    .font(.headline)
+                Spacer()
+            }
+
+            VStack(alignment: .leading, spacing: 10) {
+                // Baseline toggle (always-on blocking)
+                Toggle(isOn: Binding(
+                    get: { screenTime.isBaselineEnabled },
+                    set: { newValue in
+                        if newValue {
+                            screenTime.enableBaseline()
+                        } else {
+                            screenTime.disableBaseline()
+                        }
+                    })
+                ) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Baseline blocking")
+                            .font(.subheadline.weight(.semibold))
+                        Text("Keep your most distracting apps blocked by default.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                if !screenTime.selectionSummary.isEmpty {
+                    Text(screenTime.selectionSummary)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .padding(.leading, 2)
+                }
+
+                Button {
+                    showingBaselinePicker = true
+                } label: {
+                    HStack {
+                        Image(systemName: "square.stack.3d.up")
+                        Text("Choose blocked apps & websites")
+                        Spacer()
+                    }
+                    .font(.footnote)
+                }
+
+                Divider()
+                    .padding(.vertical, 4)
+
+                HStack(spacing: 12) {
+                    Button {
+                        screenTime.startPanicBlock(minutes: 15)
+                    } label: {
+                        HStack {
+                            Image(systemName: "hand.raised.fill")
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Panic button")
+                                    .font(.subheadline.weight(.semibold))
+                                Text("Block distractions for 15 minutes.")
+                                    .font(.caption)
+                            }
+                            Spacer()
+                        }
+                    }
+
+                    Button {
+                        let end = Calendar.current.date(byAdding: .hour, value: 2, to: Date())
+                        screenTime.startEssentialsOnlyMode(until: end)
+                    } label: {
+                        HStack {
+                            Image(systemName: "books.vertical.fill")
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Study Only")
+                                    .font(.subheadline.weight(.semibold))
+                                Text("Everything but essentials for 2h.")
+                                    .font(.caption)
+                            }
+                            Spacer()
+                        }
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.small)
+            }
+            .padding()
+            .background(.ultraThinMaterial)
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        }
+    }
+
+    // MARK: Leaderboard
+
+    var leaderboardSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("Focus leaderboard")
+                    .font(.headline)
+                Spacer()
+            }
+
+            if leaderboardEntries.isEmpty {
+                Text("Once you and your buddies start focusing, you’ll see a leaderboard here.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            } else {
+                VStack(spacing: 8) {
+                    ForEach(leaderboardEntries.prefix(3)) { entry in
+                        leaderboardRow(entry)
+                    }
+
+                    if let me = leaderboardEntries.first(where: { $0.isCurrentUser }),
+                       let last = leaderboardEntries.sorted(by: { $0.rank < $1.rank }).last {
+
+                        if me.rank > 3 && me.id != last.id {
+                            HStack {
+                                Text("…")
+                                    .font(.headline)
+                                Spacer()
+                            }
+                            .padding(.vertical, 2)
+
+                            leaderboardRow(me)
+                        }
+
+                        if last.id != me.id && last.rank > 3 {
+                            leaderboardRow(last)
+                                .opacity(0.8)
+                        }
+                    }
+                }
+                .padding()
+                .background(Color(.systemGray6))
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            }
+        }
+    }
+
+    func leaderboardRow(_ entry: LeaderboardEntry) -> some View {
+        HStack {
+            Text("#\(entry.rank)")
+                .font(.subheadline.weight(.semibold))
+                .frame(width: 32, alignment: .leading)
+
+            VStack(alignment: .leading) {
+                Text(entry.displayName)
+                    .font(entry.isCurrentUser ? .subheadline.weight(.semibold) : .subheadline)
+                Text("\(entry.totalMinutes) min focused")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            if entry.isCurrentUser {
+                Text("You")
+                    .font(.caption2.weight(.bold))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color.accentColor.opacity(0.15))
+                    .clipShape(Capsule())
+            }
+        }
+    }
+
+    // MARK: Stories
 
     var storiesSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Stories")
                 .font(.headline)
 
-            StoryBubblesRowView(
-                currentUserName: displayName.isEmpty ? "You" : displayName,
-                stories: stories
-            )
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 14) {
+                    ForEach(stories) { story in
+                        VStack(spacing: 6) {
+                            ZStack {
+                                Circle()
+                                    .strokeBorder(story.isNew ? Color.accentColor : Color.gray.opacity(0.4), lineWidth: 3)
+                                    .frame(width: 60, height: 60)
 
-            if stories.isEmpty {
-                Text("When you and your friends share challenge moments, they’ll appear here as stories.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-        }
-    }
-
-    var leaderboardSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("Friends leaderboard")
-                    .font(.headline)
-                Spacer()
-                if leaderboardEntries.count > 4 {
-                    Button {
-                        withAnimation(.spring()) {
-                            isLeaderboardExpanded.toggle()
-                        }
-                    } label: {
-                        Text(isLeaderboardExpanded ? "Show less" : "Show all")
-                            .font(.caption)
-                    }
-                }
-            }
-
-            if leaderboardEntries.isEmpty {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("No leaderboard yet")
-                        .font(.subheadline.bold())
-                    Text("Once you join challenges with friends, your weekly focus time will appear here.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                .padding(12)
-                .background(.thinMaterial)
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-            } else {
-                let rows = leaderboardRows(showAll: isLeaderboardExpanded)
-
-                VStack(spacing: 8) {
-                    ForEach(rows, id: \.id) { row in
-                        if row.isEllipsis {
-                            Button {
-                                withAnimation(.spring()) {
-                                    isLeaderboardExpanded = true
-                                }
-                            } label: {
-                                HStack {
-                                    Spacer()
-                                    Text("⋯")
-                                        .font(.title2)
-                                        .foregroundStyle(.secondary)
-                                    Spacer()
-                                }
-                                .padding(.vertical, 2)
+                                Text(String(story.userName.prefix(2)).uppercased())
+                                    .font(.headline.weight(.semibold))
                             }
-                            .buttonStyle(.plain)
-                        } else if let entry = row.entry {
-                            LeaderboardRowView(
-                                position: row.position,
-                                entry: entry
-                            )
+                            Text(story.isCurrentUser ? "You" : story.userName)
+                                .font(.caption)
                         }
                     }
+
+                    if stories.isEmpty {
+                        Text("When buddies share story moments, they’ll show up here.")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: 220, alignment: .leading)
+                    }
                 }
-                .padding(12)
-                .background(.thinMaterial)
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .padding(.vertical, 4)
             }
         }
     }
+
+    // MARK: Social feed
 
     var socialFeedSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Text("Challenge moments")
                     .font(.headline)
+                Spacer()
             }
 
             if socialPosts.isEmpty {
-                Text("Share screenshots, photos, or notes from your challenges to keep each other motivated.")
-                    .font(.caption)
+                Text("Post photos or clips from your challenges to share with buddies.")
+                    .font(.footnote)
                     .foregroundStyle(.secondary)
             } else {
                 VStack(spacing: 12) {
                     ForEach(socialPosts) { post in
-                        PostCardView(post: post)
-                    }
-                }
-            }
-        }
-    }
-
-    @ViewBuilder
-    var focusAndSetupSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Focus & setup")
-                .font(.headline)
-
-            if !screenTime.isAuthorized {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Screen Time permission needed")
-                        .font(.subheadline.bold())
-                    Text("Grant permission so BuddyLock can shield distracting apps during challenges.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-
-                    Button {
-                        Task { await screenTime.requestAuthorization() }
-                    } label: {
-                        Label("Grant Screen Time Permission", systemImage: "lock.shield")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.large)
-                }
-                .padding(12)
-                .background(.thinMaterial)
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-            } else {
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack {
-                        Label("Quick focus session", systemImage: "bolt.fill")
-                            .font(.subheadline.bold())
-                        Spacer()
-                        if screenTime.focusState.isActive,
-                           let remaining = screenTime.focusState.secondsRemaining {
-                            Text("Ends in \(formattedMinutes(from: remaining))")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        } else {
-                            Text("Not focusing")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-
-                    Stepper("Focus length: \(focusMinutes) min",
-                            value: $focusMinutes,
-                            in: 5...180,
-                            step: 5)
-                        .font(.footnote)
-
-                    HStack {
-                        if screenTime.focusState.isActive {
-                            Button(role: .destructive) {
-                                screenTime.cancelFocusSession()
-                            } label: {
-                                Label("Stop Focus", systemImage: "stop.circle.fill")
-                                    .frame(maxWidth: .infinity)
-                            }
-                            .buttonStyle(.bordered)
-                        } else {
-                            Button {
-                                screenTime.startFocusSession(
-                                    minutes: focusMinutes,
-                                    warmUpSeconds: 0
-                                )
-                            } label: {
-                                Label("Start Focus", systemImage: "play.circle.fill")
-                                    .frame(maxWidth: .infinity)
-                            }
-                            .buttonStyle(.borderedProminent)
-                        }
-                    }
-
-                    Toggle("Schedule for later", isOn: $scheduleEnabled.animation())
-                        .font(.footnote)
-
-                    if scheduleEnabled {
-                        DatePicker(
-                            "Start at",
-                            selection: $scheduledStart,
-                            displayedComponents: [.hourAndMinute, .date]
-                        )
-                        .font(.footnote)
-
-                        HStack(spacing: 12) {
-                            Button {
-                                screenTime.scheduleFocusSession(
-                                    start: scheduledStart,
-                                    minutes: focusMinutes,
-                                    warmUpSeconds: 0
-                                )
-                            } label: {
-                                Label("Schedule", systemImage: "calendar.badge.clock")
-                                    .frame(maxWidth: .infinity)
-                            }
-                            .buttonStyle(.bordered)
-
-                            if let s = screenTime.scheduledStart {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text("Scheduled for")
-                                        .font(.caption)
+                        VStack(alignment: .leading, spacing: 6) {
+                            HStack {
+                                Circle()
+                                    .frame(width: 28, height: 28)
+                                    .foregroundStyle(Color.accentColor.opacity(0.2))
+                                    .overlay(
+                                        Text(String(post.userName.prefix(1)))
+                                            .font(.caption.weight(.bold))
+                                    )
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(post.userName)
+                                        .font(.subheadline.weight(.semibold))
+                                    Text(relativeDateString(from: post.createdAt))
+                                        .font(.caption2)
                                         .foregroundStyle(.secondary)
-                                    Text(s.formatted(date: .abbreviated, time: .shortened))
-                                        .font(.caption)
                                 }
+                                Spacer()
                             }
+
+                            Text(post.caption)
+                                .font(.subheadline)
                         }
-
-                        if screenTime.scheduledStart != nil {
-                            Button(role: .destructive) {
-                                screenTime.cancelScheduledFocus()
-                            } label: {
-                                Text("Cancel scheduled focus")
-                                    .frame(maxWidth: .infinity)
-                            }
-                            .buttonStyle(.bordered)
-                            .font(.footnote)
-                        }
-                    }
-
-                    #if canImport(FamilyControls)
-                    Divider().padding(.vertical, 4)
-
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Apps & websites to shield")
-                            .font(.footnote.bold())
-
-                        Button {
-                            showPicker = true
-                        } label: {
-                            Label("Choose apps & categories", systemImage: "slider.horizontal.3")
-                                .frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(.bordered)
-                        .sheet(isPresented: $showPicker) {
-                            FamilyActivityPicker(selection: $screenTime.selection)
-                        }
-
-                        if !screenTime.selectionSummary.isEmpty {
-                            Text(screenTime.selectionSummary)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                    #endif
-
-                    Text("During a focus session, selected apps & domains are shielded while you earn progress in challenges.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
-                .padding(12)
-                .background(.thinMaterial)
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-            }
-        }
-    }
-}
-
-// MARK: - Leaderboard layout helpers
-
-private extension HomeView {
-    struct LeaderboardRow: Identifiable {
-        let id = UUID()
-        let position: Int?
-        let entry: LeaderboardEntry?
-        let isEllipsis: Bool
-
-        init(position: Int? = nil, entry: LeaderboardEntry? = nil, isEllipsis: Bool = false) {
-            self.position = position
-            self.entry = entry
-            self.isEllipsis = isEllipsis
-        }
-    }
-
-    func leaderboardRows(showAll: Bool) -> [LeaderboardRow] {
-        var rows: [LeaderboardRow] = []
-
-        // Sort by score descending
-        let entries = leaderboardEntries.sorted { $0.scoreMinutes > $1.scoreMinutes }
-        guard !entries.isEmpty else { return [] }
-
-        // If showing everything OR small list, just show all
-        if showAll || entries.count <= 4 {
-            return entries.enumerated().map { index, entry in
-                LeaderboardRow(position: index + 1, entry: entry)
-            }
-        }
-
-        let top3 = Array(entries.prefix(3))
-        guard let last = entries.last else { return [] }
-        let myIndex = entries.firstIndex(where: { $0.isCurrentUser })
-
-        // Always show top 3
-        for (index, entry) in top3.enumerated() {
-            rows.append(LeaderboardRow(position: index + 1, entry: entry))
-        }
-
-        // Helper to append a single ellipsis row
-        func addEllipsis() {
-            rows.append(LeaderboardRow(isEllipsis: true))
-        }
-
-        guard let myIndex = myIndex else {
-            // No explicit current user: top 3 ... last
-            addEllipsis()
-            rows.append(LeaderboardRow(position: entries.count, entry: last))
-            return rows
-        }
-
-        if myIndex < 3 {
-            // You're already in top 3: top 3 ... last
-            addEllipsis()
-            rows.append(LeaderboardRow(position: entries.count, entry: last))
-        } else if myIndex == entries.count - 1 {
-            // You're last: top 3 ... you(last)
-            addEllipsis()
-            rows.append(LeaderboardRow(position: entries.count, entry: last))
-        } else {
-            // Typical case: top 3 ... your spot ... last
-            addEllipsis()
-            rows.append(LeaderboardRow(position: myIndex + 1, entry: entries[myIndex]))
-            if entries[myIndex].id != last.id {
-                addEllipsis()
-                rows.append(LeaderboardRow(position: entries.count, entry: last))
-            }
-        }
-
-        return rows
-    }
-}
-
-// MARK: - Row / Card / Bubbles subviews
-
-private struct LeaderboardRowView: View {
-    let position: Int?
-    let entry: HomeView.LeaderboardEntry
-
-    var body: some View {
-        HStack(spacing: 12) {
-            if let position {
-                Text("#\(position)")
-                    .font(.subheadline.bold())
-                    .frame(width: 32, alignment: .trailing)
-            } else {
-                Text("–")
-                    .frame(width: 32, alignment: .trailing)
-                    .foregroundStyle(.secondary)
-            }
-
-            VStack(alignment: .leading, spacing: 2) {
-                HStack {
-                    Text(entry.displayName)
-                        .font(entry.isCurrentUser ? .subheadline.weight(.semibold) : .subheadline)
-                    if entry.isCurrentUser {
-                        Text("you")
-                            .font(.caption2)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(Color.accentColor.opacity(0.15))
-                            .clipShape(Capsule())
+                        .padding()
+                        .background(Color(.systemGray6))
+                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                     }
                 }
-                Text("\(entry.scoreMinutes) min focused")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
             }
-
-            Spacer()
         }
-        .padding(.vertical, 4)
     }
-}
 
-private struct PostCardView: View {
-    let post: HomeView.SocialPost
+    // MARK: Custom focus sheet
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 8) {
-                ZStack {
-                    Circle()
-                        .frame(width: 32, height: 32)
-                        .opacity(0.15)
-                    Text(String(post.authorName.prefix(1)))
-                        .font(.subheadline.bold())
+    var customFocusSheet: some View {
+        NavigationStack {
+            VStack(alignment: .leading, spacing: 16) {
+                Text("How long do you want to focus?")
+                    .font(.headline)
+
+                Slider(value: $customFocusMinutes, in: 10...120, step: 5) {
+                    Text("Minutes")
+                } minimumValueLabel: {
+                    Text("10")
+                } maximumValueLabel: {
+                    Text("120")
                 }
 
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(post.authorName)
-                        .font(.subheadline.bold())
-                    Text(post.challengeTitle)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
+                Text("\(Int(customFocusMinutes)) minutes")
+                    .font(.title2.weight(.semibold))
 
                 Spacer()
 
-                Text(relativeTime(from: post.timestamp))
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-            }
-
-            Text(post.caption)
-                .font(.footnote)
-
-        }
-        .padding(12)
-        .background(.thinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-    }
-
-    private func relativeTime(from date: Date) -> String {
-        let formatter = RelativeDateTimeFormatter()
-        formatter.unitsStyle = .abbreviated
-        return formatter.localizedString(for: date, relativeTo: Date())
-    }
-}
-
-private struct StoryBubblesRowView: View {
-    let currentUserName: String
-    let stories: [HomeView.Story]
-
-    var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 14) {
-                // "Your story" bubble
-                StoryBubbleView(
-                    label: "Your story",
-                    initials: initials(from: currentUserName),
-                    isCurrentUser: true,
-                    hasUnseenContent: true
-                )
-
-                ForEach(stories) { story in
-                    StoryBubbleView(
-                        label: story.authorName,
-                        initials: initials(from: story.authorName),
-                        isCurrentUser: story.isCurrentUser,
-                        hasUnseenContent: story.hasUnseenContent
+                Button {
+                    screenTime.startFocusSession(
+                        minutes: Int(customFocusMinutes),
+                        warmUpSeconds: 10
                     )
+                    showingCustomFocusSheet = false
+                } label: {
+                    Text("Start focus")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+            }
+            .padding()
+            .navigationTitle("Custom focus")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        showingCustomFocusSheet = false
+                    }
                 }
             }
-            .padding(.vertical, 4)
         }
     }
 
-    private func initials(from name: String) -> String {
-        let parts = name.split(separator: " ")
-        if let first = parts.first, let last = parts.dropFirst().first {
-            return "\(first.first ?? " ").\(last.first ?? " ")"
-        } else if let first = name.first {
-            return String(first)
-        } else {
-            return "?"
-        }
-    }
-}
+    // MARK: Helpers
 
-private struct StoryBubbleView: View {
-    let label: String
-    let initials: String
-    let isCurrentUser: Bool
-    let hasUnseenContent: Bool
-
-    var body: some View {
-        VStack(spacing: 6) {
-            ZStack {
-                Circle()
-                    .strokeBorder(
-                        hasUnseenContent ? Color.accentColor : Color.secondary.opacity(0.4),
-                        lineWidth: hasUnseenContent ? 3 : 1
-                    )
-                    .frame(width: 56, height: 56)
-
-                Text(initials)
-                    .font(.subheadline.bold())
-            }
-            .overlay(alignment: .bottomTrailing) {
-                if isCurrentUser {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.system(size: 16))
-                        .symbolRenderingMode(.palette)
-                        .foregroundStyle(.blue, .white)
-                        .background(
-                            Circle()
-                                .fill(Color(.systemBackground))
-                                .frame(width: 18, height: 18)
-                        )
-                        .offset(x: 4, y: 4)
-                }
-            }
-
-            Text(label)
-                .font(.caption2)
-                .lineLimit(1)
-        }
-        .frame(width: 64)
-    }
-}
-
-// MARK: - Helpers
-
-private extension HomeView {
-    var greetingTitle: String {
-        let base = displayName.isEmpty ? "Welcome back" : "Hey, \(displayName)"
-        return base
+    func formatTime(_ seconds: Int) -> String {
+        let m = seconds / 60
+        let s = seconds % 60
+        return String(format: "%02d:%02d", m, s)
     }
 
-    func formattedMinutes(from seconds: Int) -> String {
+    func formatMinutes(_ seconds: Int) -> String {
         let minutes = max(1, seconds / 60)
         return "\(minutes) min"
+    }
+
+    func relativeDateString(from date: Date) -> String {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .short
+        return formatter.localizedString(for: date, relativeTo: Date())
     }
 }
 
@@ -673,12 +600,31 @@ private extension HomeView {
 
 #Preview {
     let challenges = ChallengeService()
+
+    let demoLeaderboard: [LeaderboardEntry] = [
+        .init(rank: 1, displayName: "Alex", totalMinutes: 250, isCurrentUser: false),
+        .init(rank: 2, displayName: "You", totalMinutes: 210, isCurrentUser: true),
+        .init(rank: 3, displayName: "Sam", totalMinutes: 180, isCurrentUser: false),
+        .init(rank: 6, displayName: "Taylor", totalMinutes: 60, isCurrentUser: false)
+    ]
+
+    let demoStories: [Story] = [
+        .init(userName: "You", isCurrentUser: true, isNew: true),
+        .init(userName: "Alex", isCurrentUser: false, isNew: true),
+        .init(userName: "Sam", isCurrentUser: false, isNew: false)
+    ]
+
+    let demoPosts: [SocialPost] = [
+        .init(userName: "Alex", caption: "Finished my chem notes 💀", createdAt: Date().addingTimeInterval(-3600)),
+        .init(userName: "You", caption: "2h deep work for SAT today 📚", createdAt: Date().addingTimeInterval(-7200))
+    ]
+
     return NavigationStack {
         HomeView(
             challengesService: challenges,
-            leaderboardEntries: [],
-            socialPosts: [],
-            stories: []
+            leaderboardEntries: demoLeaderboard,
+            socialPosts: demoPosts,
+            stories: demoStories
         )
     }
     .environmentObject(ScreenTimeManager())

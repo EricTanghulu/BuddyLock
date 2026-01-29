@@ -1,10 +1,14 @@
 import SwiftUI
+import FirebaseAuth
 
 struct ProfileView: View {
     @EnvironmentObject var screenTime: ScreenTimeManager
     @ObservedObject var challengesService: ChallengeService
     @ObservedObject var buddyService: LocalBuddyService
+    @Environment(\.dismiss) private var dismiss
+    @State private var logoutError: String?
 
+    
     @AppStorage("BuddyLock.displayName")
     private var displayName: String = ""
 
@@ -13,200 +17,222 @@ struct ProfileView: View {
             VStack(spacing: 20) {
                 profileHeaderCard
                 focusStatusCard
-                challengesCard
+                statsCard
                 achievementsCard
-                quickActionsCard
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 24)
-        }
-        .background(Color(.systemGroupedBackground).ignoresSafeArea())
-        .navigationTitle("Profile")
-        .navigationBarTitleDisplayMode(.large)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                NavigationLink {
-                    SettingsView(buddyService: buddyService)
-                } label: {
-                    Image(systemName: "gearshape")
-                        .imageScale(.large)
+
+                // MARK: - Logout button
+                Button(role: .destructive) {
+                    do {
+                        try Auth.auth().signOut()
+                        dismiss() // go back to login
+                    } catch {
+                        logoutError = error.localizedDescription
+                    }
+                }
+                label: {
+                    Label("Logout", systemImage: "arrow.backward.square")
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(.red.opacity(0.1), in: RoundedRectangle(cornerRadius: 12))
+                }
+                .foregroundColor(.red)
+                .padding(.top, 20)
+
+                // Optional: show error
+                if let error = logoutError {
+                    Text("Logout failed: \(error)")
+                        .font(.footnote)
+                        .foregroundColor(.red)
+                        .multilineTextAlignment(.center)
                 }
             }
+
+            
+            .padding()
         }
+        .navigationTitle("Your Profile")
+        .navigationBarTitleDisplayMode(.inline)
+        
+        
     }
 
     // MARK: - Cards
 
     private var profileHeaderCard: some View {
-        NavigationLink {
-            EditProfileView(buddyService: buddyService)
-        } label: {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(spacing: 16) {
-                    Circle()
-                        .fill(Color.blue.opacity(0.15))
-                        .frame(width: 72, height: 72)
-                        .overlay(
-                            Image(systemName: "person.fill")
-                                .font(.system(size: 32))
-                                .foregroundColor(.blue)
-                        )
+        HStack(spacing: 16) {
+            ZStack {
+                Circle()
+                    .fill(Color.accentColor.opacity(0.15))
+                    .frame(width: 64, height: 64)
 
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(displayName.isEmpty ? "Your Profile" : displayName)
-                            .font(.title3.bold())
-
-                        let count = buddyService.buddies.count
-                        Text("\(count) \(count == 1 ? "buddy" : "buddies") connected")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                    }
-
-                    Spacer()
-
-                    Image(systemName: "chevron.right")
-                        .foregroundStyle(.secondary)
-                }
-
-                Divider().padding(.vertical, 4)
-
-                HStack(spacing: 16) {
-                    statPill(title: "Buddies", value: "\(buddyService.buddies.count)")
-                    statPill(title: "Challenges", value: "\(totalChallenges)")
-                    statPill(title: "Active", value: "\(activeChallenges)")
-                }
+                Text(initials)
+                    .font(.title2.weight(.bold))
             }
-            .padding(16)
-            .background(.background, in: RoundedRectangle(cornerRadius: 18))
-            .shadow(radius: 4, x: 0, y: 2)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(displayName.isEmpty ? "Set your name" : displayName)
+                    .font(.title3.weight(.semibold))
+
+                Text("Building better screen habits with your buddies.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+
+                HStack(spacing: 12) {
+                    Label("\(buddyService.buddies.count) buddy\(buddyService.buddies.count == 1 ? "" : "ies")",
+                          systemImage: "person.2.fill")
+                        .font(.caption)
+                    Label("\(activeChallengeCount) active challenge\(activeChallengeCount == 1 ? "" : "s")",
+                          systemImage: "flag.checkered")
+                        .font(.caption)
+                }
+                .foregroundStyle(.secondary)
+            }
+
+            Spacer()
         }
-        .buttonStyle(.plain)
+        .padding()
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 
     private var focusStatusCard: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Focus").font(.headline)
-
-            HStack(alignment: .top, spacing: 12) {
-                Image(systemName: screenTime.focusState.isActive ? "lock.circle.fill" : "lock.circle")
-                    .font(.system(size: 28))
-                    .foregroundColor(screenTime.focusState.isActive ? .green : .secondary)
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(focusHeadline)
-                        .font(.subheadline.bold())
-
-                    Text(focusDetail)
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
-            }
-        }
-        .padding(16)
-        .background(.background, in: RoundedRectangle(cornerRadius: 18))
-        .shadow(radius: 4, x: 0, y: 2)
-    }
-
-    private var challengesCard: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Challenges").font(.headline)
-
-            HStack(spacing: 16) {
-                statPill(title: "Total", value: "\(totalChallenges)")
-                statPill(title: "Active", value: "\(activeChallenges)")
-                statPill(title: "Completed", value: "\(completedChallenges)")
+            HStack {
+                Label("Focus & blocking", systemImage: "lock.app.fill")
+                    .font(.headline)
+                Spacer()
+                Circle()
+                    .frame(width: 10, height: 10)
+                    .foregroundStyle(screenTime.activeMode == .idle ? .gray.opacity(0.4) : .green)
             }
 
-            Text(challengeSummaryLine)
+            Text(focusHeadline)
+                .font(.subheadline.weight(.semibold))
+
+            Text(focusDetail)
                 .font(.footnote)
                 .foregroundStyle(.secondary)
         }
-        .padding(16)
-        .background(.background, in: RoundedRectangle(cornerRadius: 18))
-        .shadow(radius: 4, x: 0, y: 2)
+        .padding()
+        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+
+    private var statsCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Your stats")
+                .font(.headline)
+
+            HStack {
+                statColumn(
+                    title: "Total focus",
+                    value: "\(totalFocusMinutes) min"
+                )
+
+                Spacer()
+
+                statColumn(
+                    title: "Challenges joined",
+                    value: "\(joinedChallengeCount)"
+                )
+
+                Spacer()
+
+                statColumn(
+                    title: "Buddies",
+                    value: "\(buddyService.buddies.count)"
+                )
+            }
+        }
+        .padding()
+        .background(Color(.systemGray6), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+
+    private func statColumn(title: String, value: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(value)
+                .font(.title3.weight(.bold))
+            Text(title)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
     }
 
     private var achievementsCard: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Achievements").font(.headline)
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Achievements")
+                .font(.headline)
 
-            VStack(spacing: 6) {
-                achievementRow(title: "First challenge", unlocked: totalChallenges >= 1)
-                achievementRow(title: "Regular challenger", unlocked: totalChallenges >= 3)
-                achievementRow(title: "Challenge finisher", unlocked: completedChallenges >= 1)
+            VStack(alignment: .leading, spacing: 8) {
+                achievementRow(
+                    title: "First buddy",
+                    unlocked: buddyService.buddies.count >= 1,
+                    note: "Add at least one buddy."
+                )
+
+                achievementRow(
+                    title: "First challenge",
+                    unlocked: joinedChallengeCount >= 1,
+                    note: "Join or create a challenge."
+                )
+
+                achievementRow(
+                    title: "1 hour focused",
+                    unlocked: totalFocusMinutes >= 60,
+                    note: "Reach 60 minutes of focus across challenges."
+                )
             }
         }
-        .padding(16)
-        .background(.background, in: RoundedRectangle(cornerRadius: 18))
-        .shadow(radius: 4, x: 0, y: 2)
+        .padding()
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 
-    private var quickActionsCard: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Quick actions").font(.headline)
-
-            NavigationLink {
-                BuddyListView(service: buddyService)
-            } label: {
-                HStack(spacing: 16) {
-                    Image(systemName: "person.2").font(.system(size: 20))
-
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Manage buddies")
-                        Text("Add or remove friends").font(.footnote).foregroundStyle(.secondary)
-                    }
-
-                    Spacer()
-                    Image(systemName: "chevron.right").foregroundStyle(.secondary)
-                }
-                .padding(.vertical, 4)
-            }
-        }
-        .padding(16)
-        .background(.background, in: RoundedRectangle(cornerRadius: 18))
-        .shadow(radius: 4, x: 0, y: 2)
-    }
-
-    // MARK: - Helpers
-
-    private func statPill(title: String, value: String) -> some View {
-        VStack {
-            Text(value).font(.headline)
-            Text(title).font(.caption).foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity)
-    }
-
-    private func achievementRow(title: String, unlocked: Bool) -> some View {
-        HStack {
-            Image(systemName: unlocked ? "checkmark.circle.fill" : "circle")
+    private func achievementRow(title: String, unlocked: Bool, note: String) -> some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: unlocked ? "checkmark.seal.fill" : "seal")
                 .foregroundColor(unlocked ? .green : .secondary)
-            Text(title)
+                .font(.title3)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                Text(note)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
             Spacer()
         }
-        .font(.subheadline)
     }
 
-    private var totalChallenges: Int { challengesService.challenges.count }
+    // MARK: - Derived values
 
-    private var activeChallenges: Int {
-        let now = Date()
-        return challengesService.challenges.filter { $0.startDate <= now && $0.endDate >= now }.count
-    }
-
-    private var completedChallenges: Int {
-        let now = Date()
-        return challengesService.challenges.filter { $0.endDate < now }.count
-    }
-
-    private var challengeSummaryLine: String {
-        if activeChallenges > 0 {
-            return "You’re currently in \(activeChallenges) active challenge\(activeChallenges == 1 ? "" : "s")."
+    private var initials: String {
+        let comps = displayName.split(separator: " ")
+        if let first = comps.first, let char = first.first {
+            return String(char).uppercased()
         }
-        if completedChallenges > 0 {
-            return "You’ve completed \(completedChallenges) challenge\(completedChallenges == 1 ? "" : "s")."
+        return "U"
+    }
+
+    private var totalFocusMinutes: Int {
+        let id = challengesService.localUserID
+        return challengesService.challenges.reduce(0) { sum, challenge in
+            sum + (challenge.scores[id] ?? 0)
         }
-        return "You haven’t joined any challenges yet."
+    }
+
+    private var joinedChallengeCount: Int {
+        let id = challengesService.localUserID
+        return challengesService.challenges.filter {
+            $0.participantIDs.contains(id)
+        }.count
+    }
+
+    private var activeChallengeCount: Int {
+        let id = challengesService.localUserID
+        let now = Date()
+        return challengesService.challenges.filter {
+            $0.participantIDs.contains(id) && now >= $0.startDate && now <= $0.endDate
+        }.count
     }
 
     private var focusHeadline: String {
@@ -216,13 +242,39 @@ struct ProfileView: View {
             }
             return "Focus session active"
         }
-        return "Not focusing"
+
+        switch screenTime.activeMode {
+        case .baseline:
+            return "Baseline blocking is on"
+        case .panic:
+            return "Panic block is active"
+        case .essentialsOnly:
+            return "Study Only mode is active"
+        case .idle:
+            return "Not focusing right now"
+        case .focus:
+            // handled above
+            return "Focus session"
+        }
     }
 
     private var focusDetail: String {
-        screenTime.focusState.isActive
-        ? "Stay in focus to reduce screen time and compete in challenges."
-        : "Start a focus session from the Home tab."
+        if screenTime.focusState.isActive {
+            return "Stay in focus to build streaks and climb the leaderboard with your buddies."
+        }
+
+        switch screenTime.activeMode {
+        case .baseline:
+            return "Your most distracting apps are blocked by default. You can adjust this from the Home tab."
+        case .panic:
+            return "You recently hit the panic button to keep yourself safe from distractions."
+        case .essentialsOnly:
+            return "Only essential apps are allowed. Great for exam prep and deep work."
+        case .idle:
+            return "Start a focus session from the Home tab to protect your attention."
+        case .focus:
+            return ""
+        }
     }
 }
 
@@ -230,7 +282,9 @@ struct ProfileView: View {
     let screenTime = ScreenTimeManager()
     let challenges = ChallengeService()
     let buddies = LocalBuddyService()
-    buddies.addBuddy(name: "Preview Buddy")
+    buddies.addBuddy(LocalBuddy(remoteID: "remote1",     // buddy doc ID
+                                buddyUserID: "buddyID",               // friend's auth UID
+                                )) 
 
     return NavigationStack {
         ProfileView(challengesService: challenges, buddyService: buddies)

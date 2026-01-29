@@ -86,7 +86,7 @@ struct ChallengeCreateView: View {
                 Picker("Buddy", selection: $selectedBuddyID) {
                     Text("Select…").tag(Optional<UUID>.none)
                     ForEach(buddies.buddies) { b in
-                        Text(b.displayName).tag(Optional(b.id))
+                        Text(b.buddyUserID).tag(Optional(b.id))
                     }
                 }
             }
@@ -101,7 +101,7 @@ struct ChallengeCreateView: View {
                     .foregroundStyle(.secondary)
             } else {
                 ForEach(buddies.buddies) { b in
-                    Toggle(b.displayName, isOn: Binding(
+                    Toggle(b.buddyUserID, isOn: Binding(
                         get: { selectedGroupBuddyIDs.contains(b.id) },
                         set: { newValue in
                             if newValue {
@@ -174,8 +174,9 @@ struct ChallengeCreateView_Previews: PreviewProvider {
     static var previewBuddyService: LocalBuddyService = {
         let s = LocalBuddyService()
         if s.buddies.isEmpty {
-            s.addBuddy(name: "Alex")
-            s.addBuddy(name: "Jordan")
+            s.addBuddy(LocalBuddy(remoteID: "remote1",     // buddy doc ID
+                                  buddyUserID: "buddyID"               // friend's auth UID
+                                   ))
         }
         return s
     }()
