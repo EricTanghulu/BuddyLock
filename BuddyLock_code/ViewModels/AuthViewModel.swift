@@ -40,11 +40,21 @@ class AuthViewModel: ObservableObject {
                 "username": username,
                 "friends": []
             ]
+            let username_data: [String: Any] = [
+                "uid": user.uid
+            ]
             Firestore.firestore().collection("users").document(user.uid).setData(data) { err in
                 if let err = err {
                     print("Error saving profile:", err.localizedDescription)
                 } else {
                     print("Profile saved to Firestore")
+                }
+            }
+            Firestore.firestore().collection("usernames").document(username).setData(username_data) { err in
+                if let err = err {
+                    print("Error saving profile:", err.localizedDescription)
+                } else {
+                    print("Username saved to Firestore")
                 }
             }
         }
