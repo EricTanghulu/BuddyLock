@@ -5,80 +5,580 @@
   <title>BuddyLock LLC</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <meta name="description" content="BuddyLock is an iOS app prototype that helps users limit screen time through focus sessions and social accountability.">
+  <meta
+    name="description"
+    content="BuddyLock helps users reduce screen time through focus sessions, app shielding, and accountability from trusted buddies."
+  >
 
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+  >
+
+  <style>
+    :root {
+      --bg: #f7f8fc;
+      --surface: rgba(255, 255, 255, 0.78);
+      --surface-strong: #ffffff;
+      --text: #18212f;
+      --muted: #5f6b7a;
+      --line: rgba(24, 33, 47, 0.08);
+      --brand: #127369;
+      --brand-dark: #0f5c54;
+      --brand-soft: #dff5f1;
+      --accent: #ffb703;
+      --shadow: 0 20px 60px rgba(20, 31, 56, 0.08);
+      --radius-lg: 28px;
+      --radius-md: 18px;
+      --max: 1120px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Inter", system-ui, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(18, 115, 105, 0.16), transparent 30%),
+        radial-gradient(circle at top right, rgba(255, 183, 3, 0.16), transparent 28%),
+        linear-gradient(180deg, #f9fbff 0%, #f4f7fb 100%);
+      line-height: 1.6;
+    }
+
+    a {
+      color: var(--brand-dark);
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    .page-shell {
+      width: min(var(--max), calc(100% - 32px));
+      margin: 0 auto;
+    }
+
+    .hero {
+      padding: 28px 0 48px;
+    }
+
+    .nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 12px 0 28px;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .brand-badge {
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, var(--brand), #19a594);
+      color: white;
+      box-shadow: 0 12px 24px rgba(18, 115, 105, 0.22);
+      font-weight: 700;
+    }
+
+    .nav-link {
+      font-size: 0.95rem;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .hero-card {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 28px;
+      align-items: center;
+      background: var(--surface);
+      backdrop-filter: blur(14px);
+      border: 1px solid rgba(255, 255, 255, 0.75);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+      padding: 28px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--brand-soft);
+      color: var(--brand-dark);
+      border-radius: 999px;
+      padding: 8px 14px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+    }
+
+    h1, h2, h3 {
+      margin: 0 0 12px;
+      line-height: 1.05;
+      letter-spacing: -0.03em;
+    }
+
+    h1 {
+      font-family: "Space Grotesk", sans-serif;
+      font-size: clamp(2.7rem, 6vw, 5rem);
+      margin-top: 18px;
+    }
+
+    .hero p {
+      font-size: 1.08rem;
+      color: var(--muted);
+      max-width: 58ch;
+      margin: 0 0 22px;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      margin-top: 20px;
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 13px 18px;
+      border-radius: 14px;
+      font-weight: 700;
+      border: 1px solid transparent;
+      transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+    }
+
+    .button:hover {
+      transform: translateY(-1px);
+      text-decoration: none;
+    }
+
+    .button-primary {
+      background: linear-gradient(135deg, var(--brand), #169989);
+      color: white;
+      box-shadow: 0 14px 30px rgba(18, 115, 105, 0.18);
+    }
+
+    .button-secondary {
+      background: white;
+      color: var(--text);
+      border-color: var(--line);
+    }
+
+    .hero-panel {
+      background: linear-gradient(180deg, #1c2533 0%, #16202c 100%);
+      color: white;
+      border-radius: 24px;
+      padding: 22px;
+      min-height: 360px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero-panel::before,
+    .hero-panel::after {
+      content: "";
+      position: absolute;
+      border-radius: 999px;
+      filter: blur(10px);
+    }
+
+    .hero-panel::before {
+      width: 180px;
+      height: 180px;
+      background: rgba(25, 165, 148, 0.22);
+      top: -40px;
+      right: -30px;
+    }
+
+    .hero-panel::after {
+      width: 140px;
+      height: 140px;
+      background: rgba(255, 183, 3, 0.22);
+      bottom: -30px;
+      left: -20px;
+    }
+
+    .mockup-chip {
+      display: inline-block;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 8px 12px;
+      border-radius: 999px;
+      font-size: 0.82rem;
+      color: rgba(255, 255, 255, 0.82);
+      margin-bottom: 18px;
+    }
+
+    .stat-card,
+    .mini-card {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 18px;
+      padding: 16px;
+    }
+
+    .panel-grid {
+      display: grid;
+      gap: 14px;
+      margin-top: 16px;
+    }
+
+    .stat-number {
+      font-size: 2.1rem;
+      font-weight: 800;
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+
+    .mini-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      color: rgba(255, 255, 255, 0.84);
+      font-size: 0.95rem;
+    }
+
+    .content {
+      padding: 12px 0 72px;
+    }
+
+    .section {
+      margin-top: 28px;
+      background: rgba(255, 255, 255, 0.72);
+      border: 1px solid rgba(255, 255, 255, 0.72);
+      box-shadow: var(--shadow);
+      border-radius: 26px;
+      padding: 30px;
+    }
+
+    .section-header {
+      max-width: 720px;
+      margin-bottom: 24px;
+    }
+
+    .section-header h2 {
+      font-family: "Space Grotesk", sans-serif;
+      font-size: clamp(1.8rem, 3vw, 2.6rem);
+    }
+
+    .section-header p {
+      margin: 0;
+      color: var(--muted);
+    }
+
+    .feature-grid,
+    .tech-grid,
+    .roadmap-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .card {
+      background: var(--surface-strong);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      padding: 22px;
+    }
+
+    .card h3 {
+      font-size: 1.15rem;
+      margin-bottom: 8px;
+    }
+
+    .card p {
+      color: var(--muted);
+      margin-top: 0;
+    }
+
+    .card ul {
+      margin: 12px 0 0;
+      padding-left: 18px;
+      color: var(--muted);
+    }
+
+    .card li + li {
+      margin-top: 8px;
+    }
+
+    .accent-card {
+      background: linear-gradient(180deg, #effcf8 0%, #ffffff 100%);
+      border-color: rgba(18, 115, 105, 0.14);
+    }
+
+    .contact-box {
+      display: flex;
+      justify-content: space-between;
+      gap: 20px;
+      align-items: center;
+      background: linear-gradient(135deg, var(--brand) 0%, #1a8f80 100%);
+      color: white;
+      border-radius: 22px;
+      padding: 26px;
+      margin-top: 24px;
+    }
+
+    .contact-box h2 {
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 1.8rem;
+      margin-bottom: 8px;
+    }
+
+    .contact-box p {
+      margin: 0;
+      color: rgba(255, 255, 255, 0.88);
+    }
+
+    .contact-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 13px 18px;
+      border-radius: 14px;
+      font-weight: 700;
+      background: white;
+      color: var(--brand-dark);
+      white-space: nowrap;
+    }
+
+    footer {
+      padding: 28px 0 48px;
+      color: var(--muted);
+      font-size: 0.95rem;
+      text-align: center;
+    }
+
+    @media (max-width: 920px) {
+      .hero-card,
+      .feature-grid,
+      .tech-grid,
+      .roadmap-grid,
+      .contact-box {
+        grid-template-columns: 1fr;
+      }
+
+      .contact-box {
+        display: grid;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .hero {
+        padding-top: 18px;
+      }
+
+      .hero-card,
+      .section {
+        padding: 22px;
+      }
+
+      .nav {
+        padding-bottom: 20px;
+      }
+
+      h1 {
+        font-size: 2.5rem;
+      }
+    }
+  </style>
 </head>
-<body style="
-  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
-  max-width: 800px;
-  margin: 48px auto;
-  padding: 0 16px;
-  line-height: 1.6;
-">
+<body>
+  <div class="page-shell">
+    <header class="hero">
+      <nav class="nav">
+        <div class="brand">
+          <div class="brand-badge">B</div>
+          <span>BuddyLock</span>
+        </div>
+        <a class="nav-link" href="#contact">Contact</a>
+      </nav>
 
-  <h1>BuddyLock</h1>
+      <section class="hero-card">
+        <div>
+          <div class="eyebrow">Screen time, with accountability</div>
+          <h1>Build better focus habits with backup from your buddies.</h1>
+          <p>
+            BuddyLock is an iOS app from BuddyLock LLC that helps users reduce
+            distracting screen time through focus sessions, app shielding, and
+            social accountability from trusted friends.
+          </p>
 
-  <p>
-    <strong>BuddyLock</strong> is an iOS app prototype developed by
-    <strong>BuddyLock LLC</strong>. It helps users limit screen time and build
-    healthier focus habits through structured focus sessions and social
-    accountability.
-  </p>
+          <div class="hero-actions">
+            <a class="button button-primary" href="mailto:buddylockemail@gmail.com">Contact BuddyLock</a>
+            <a class="button button-secondary" href="#features">Explore Features</a>
+          </div>
+        </div>
 
-  <h2>Features</h2>
-  <ul>
-    <li><strong>Focus Sessions</strong>
-      <ul>
-        <li>Shield selected apps, categories, and domains</li>
-        <li>Warm-up timer to resist impulsive unlocks</li>
-        <li>Scheduled focus sessions</li>
-        <li>Automatic logging of completed focus minutes</li>
-      </ul>
-    </li>
-    <li><strong>Buddy System</strong>
-      <ul>
-        <li>Add and manage trusted buddies</li>
-        <li>Send unlock requests for accountability</li>
-        <li>Approve or deny requests</li>
-        <li>Temporary exceptions that automatically expire</li>
-      </ul>
-    </li>
-    <li><strong>Challenges</strong>
-      <ul>
-        <li>Head-to-head and group challenges</li>
-        <li>Leaderboards based on focus minutes</li>
-        <li>Manual logging support</li>
-      </ul>
-    </li>
-  </ul>
+        <div class="hero-panel" aria-hidden="true">
+          <div class="mockup-chip">BuddyLock Focus Session</div>
 
-  <h2>Technology</h2>
-  <ul>
-    <li>SwiftUI</li>
-    <li>FamilyControls &amp; ManagedSettings</li>
-    <li>Local persistence (UserDefaults)</li>
-    <li>No cloud sync yet (CloudKit planned)</li>
-  </ul>
+          <div class="stat-card">
+            <div class="stat-number">45 min</div>
+            <div>Active focus session with distraction blocking enabled</div>
+          </div>
 
-  <h2>Roadmap</h2>
-  <ul>
-    <li>CloudKit synchronization</li>
-    <li>Advanced challenge statistics</li>
-    <li>Motivational nudges and reminders</li>
-    <li>Improved app name resolution</li>
-  </ul>
+          <div class="panel-grid">
+            <div class="mini-card">
+              <div class="mini-row">
+                <span>Buddy approval</span>
+                <strong>Pending</strong>
+              </div>
+            </div>
+            <div class="mini-card">
+              <div class="mini-row">
+                <span>Challenge streak</span>
+                <strong>6 days</strong>
+              </div>
+            </div>
+            <div class="mini-card">
+              <div class="mini-row">
+                <span>Protected apps</span>
+                <strong>12 blocked</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </header>
 
-  <h2>Contact</h2>
-  <p>
-    For inquiries related to BuddyLock:
-  </p>
-  <p>
-    Email: <a href="mailto:buddylockemail@gmail.com">buddylockemail@gmail.com</a>
-  </p>
+    <main class="content">
+      <section class="section" id="features">
+        <div class="section-header">
+          <h2>What BuddyLock Does</h2>
+          <p>
+            BuddyLock combines app blocking, intentional focus routines, and
+            human accountability into a single experience designed for healthier
+            digital habits.
+          </p>
+        </div>
 
-  <footer style="margin-top: 48px; font-size: 0.9em; color: #555;">
-    © 2026 BuddyLock LLC — iOS App Prototype
-  </footer>
+        <div class="feature-grid">
+          <article class="card accent-card">
+            <h3>Focus Sessions</h3>
+            <p>Structured sessions that help users stay intentional instead of reacting impulsively.</p>
+            <ul>
+              <li>Shield selected apps, categories, and domains</li>
+              <li>Warm-up timer before a session begins</li>
+              <li>Scheduled focus sessions</li>
+              <li>Automatic logging of completed focus minutes</li>
+            </ul>
+          </article>
 
+          <article class="card">
+            <h3>Buddy System</h3>
+            <p>Trusted friends can support better habits by adding real accountability.</p>
+            <ul>
+              <li>Add and manage trusted buddies</li>
+              <li>Send unlock requests when needed</li>
+              <li>Approve or deny requests</li>
+              <li>Temporary exceptions that automatically expire</li>
+            </ul>
+          </article>
+
+          <article class="card">
+            <h3>Challenges</h3>
+            <p>Make focus more motivating through friendly competition and shared progress.</p>
+            <ul>
+              <li>Head-to-head and group challenges</li>
+              <li>Leaderboards based on focus minutes</li>
+              <li>Manual logging support</li>
+            </ul>
+          </article>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-header">
+          <h2>Technology</h2>
+          <p>
+            Built natively for iOS using Apple and Swift technologies that support
+            screen time management and a smooth mobile experience.
+          </p>
+        </div>
+
+        <div class="tech-grid">
+          <article class="card">
+            <h3>SwiftUI</h3>
+            <p>Modern native UI framework for a clean and responsive iOS experience.</p>
+          </article>
+
+          <article class="card">
+            <h3>FamilyControls &amp; ManagedSettings</h3>
+            <p>Used to power app and content shielding for focus sessions and accountability workflows.</p>
+          </article>
+
+          <article class="card">
+            <h3>Product Direction</h3>
+            <p>Currently focused on the core iOS experience, with future plans for expanded syncing and richer user insights.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-header">
+          <h2>Roadmap</h2>
+          <p>
+            BuddyLock is continuing to evolve with features that make accountability,
+            visibility, and long-term focus progress more useful.
+          </p>
+        </div>
+
+        <div class="roadmap-grid">
+          <article class="card">
+            <h3>Cloud Sync</h3>
+            <p>Support synchronization across devices as the platform matures.</p>
+          </article>
+
+          <article class="card">
+            <h3>Better Stats</h3>
+            <p>Advanced challenge history, streak tracking, and personal progress insights.</p>
+          </article>
+
+          <article class="card">
+            <h3>Encouragement Tools</h3>
+            <p>Motivational nudges, reminders, and improvements to app name resolution.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="contact-box" id="contact">
+        <div>
+          <h2>Contact BuddyLock LLC</h2>
+          <p>
+            For business inquiries, product questions, or support requests, reach out by email.
+          </p>
+        </div>
+        <a class="contact-link" href="mailto:buddylockemail@gmail.com">buddylockemail@gmail.com</a>
+      </section>
+    </main>
+
+    <footer>
+      © 2026 BuddyLock LLC. All rights reserved.
+    </footer>
+  </div>
 </body>
 </html>
