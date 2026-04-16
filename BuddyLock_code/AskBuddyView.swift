@@ -1,7 +1,4 @@
 import SwiftUI
-#if canImport(FamilyControls)
-import FamilyControls
-#endif
 
 struct AskBuddyView: View {
     @ObservedObject var buddyService: LocalBuddyService
@@ -12,17 +9,33 @@ struct AskBuddyView: View {
     @AppStorage("BuddyLock.displayName")
     private var displayName: String = ""
 
-    @State private var selectedBuddyIndex: Int = 0
+    @State private var audienceType: BuddyAudienceType = .individual
+    @State private var selectedBuddyID: UUID?
+    @State private var selectedBuddyIDs: Set<UUID> = []
+    @State private var selectedCategoryID: UUID?
+    @State private var selectedGroupID: UUID?
+
     @State private var minutes: Int = 10
+    @State private var targetDescription: String = ""
     @State private var reason: String = ""
+    @State private var urgency: UnlockRequestUrgency = .routine
+
+    @State private var overrideApprovalRule = false
+    @State private var customApprovalRule = BuddyApprovalRule(kind: .majority)
     @State private var showingSentConfirmation = false
 
     var body: some View {
         Form {
-            newRequestSection
+            audienceSection
+            requestDetailsSection
+
+            if shouldShowApprovalRuleEditor {
+                approvalRuleSection
+            }
+
             outgoingSection
         }
-        .navigationTitle("Ask a Buddy")
+        .navigationTitle("Ask for Unlock")
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button {
@@ -35,127 +48,294 @@ struct AskBuddyView: View {
         }
         .onAppear {
             requestService.refresh()
+            preselectFirstBuddyIfNeeded()
         }
         .alert("Request sent", isPresented: $showingSentConfirmation) {
             Button("OK", role: .cancel) { }
         } message: {
-            Text("Your buddy will be able to approve or deny your unlock request from their Approvals screen.")
+            Text("Your selected audience will be able to approve or deny this unlock request from their Approvals screen.")
         }
     }
 
-    // MARK: - Sections
+    private var audienceSection: some View {
+        Section("Who should decide?") {
+            if buddyService.buddies.filter(\.canApproveUnlocks).isEmpty {
+                Text("Add at least one buddy with unlock permissions before sending a request.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            } else {
+                Picker("Audience", selection: $audienceType) {
+                    ForEach(BuddyAudienceType.allCases) { type in
+                        Text(type.title).tag(type)
+                    }
+                }
+                .pickerStyle(.menu)
 
-    private var newRequestSection: some View {
-        Section {
-            if buddyService.buddies.isEmpty {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("No buddies yet")
-                        .font(.subheadline.weight(.semibold))
-                    Text("Add at least one buddy so someone can approve your unlock requests.")
+                switch audienceType {
+                case .individual:
+                    Picker("Buddy", selection: $selectedBuddyID) {
+                        Text("Select a buddy").tag(Optional<UUID>.none)
+                        ForEach(unlockCapableBuddies) { buddy in
+                            Text(buddy.resolvedDisplayName).tag(Optional(buddy.id))
+                        }
+                    }
+
+                case .selectedBuddies:
+                    ForEach(unlockCapableBuddies) { buddy in
+                        Toggle(
+                            buddy.resolvedDisplayName,
+                            isOn: Binding(
+                                get: { selectedBuddyIDs.contains(buddy.id) },
+                                set: { newValue in
+                                    if newValue {
+                                        selectedBuddyIDs.insert(buddy.id)
+                                    } else {
+                                        selectedBuddyIDs.remove(buddy.id)
+                                    }
+                                }
+                            )
+                        )
+                    }
+
+                case .category:
+                    Picker("Category", selection: $selectedCategoryID) {
+                        Text("Select a category").tag(Optional<UUID>.none)
+                        ForEach(availableCategories) { category in
+                            Text(category.name).tag(Optional(category.id))
+                        }
+                    }
+
+                case .group:
+                    Picker("Group", selection: $selectedGroupID) {
+                        Text("Select a group").tag(Optional<UUID>.none)
+                        ForEach(availableGroups) { group in
+                            Text(group.name).tag(Optional(group.id))
+                        }
+                    }
+
+                case .everyone:
+                    Text("This will notify all buddies who still have unlock approval turned on.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
-            } else {
-                Picker("Choose a buddy", selection: $selectedBuddyIndex) {
-                    ForEach(Array(buddyService.buddies.enumerated()), id: \.offset) { index, buddy in
-                        Text(buddy.buddyUserID).tag(index)
-                    }
+
+                if let resolvedAudience {
+                    Text("Audience: \(resolvedAudience.label)")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
                 }
-
-                Stepper(
-                    "\(minutes) minute\(minutes == 1 ? "" : "s")",
-                    value: $minutes,
-                    in: 5...60,
-                    step: 5
-                )
-
-                TextField("Why do you need access? (optional)", text: $reason)
-                    .lineLimit(1...3)
-
-                Button {
-                    sendRequest()
-                } label: {
-                    Label("Send request", systemImage: "paperplane.fill")
-                        .frame(maxWidth: .infinity, alignment: .center)
-                }
-                .disabled(!canSend)
             }
+        }
+    }
+
+    private var requestDetailsSection: some View {
+        Section {
+            Stepper(
+                "\(minutes) minute\(minutes == 1 ? "" : "s")",
+                value: $minutes,
+                in: 5...60,
+                step: 5
+            )
+
+            TextField("App or category (optional)", text: $targetDescription)
+                .textInputAutocapitalization(.sentences)
+
+            Picker("Urgency", selection: $urgency) {
+                ForEach(UnlockRequestUrgency.allCases) { urgency in
+                    Text(urgency.title).tag(urgency)
+                }
+            }
+
+            TextField("Why do you need access?", text: $reason, axis: .vertical)
+                .lineLimit(2...4)
+
+            Button {
+                sendRequest()
+            } label: {
+                Label("Send request", systemImage: "paperplane.fill")
+                    .frame(maxWidth: .infinity, alignment: .center)
+            }
+            .disabled(!canSend)
         } header: {
-            Text("New unlock request")
+            Text("Request Details")
         } footer: {
-            Text("Your buddy will see who you are, how long you’re asking for, and your reason before deciding.")
+            Text("BuddyLock keeps this lightweight: send the request, then let your people decide if you really need the unlock.")
+        }
+    }
+
+    private var approvalRuleSection: some View {
+        Section("Approval Rule") {
+            if let resolvedAudience {
+                Toggle("Override the default rule", isOn: $overrideApprovalRule)
+
+                if overrideApprovalRule {
+                    ApprovalRuleEditor(
+                        rule: $customApprovalRule,
+                        recipientCount: resolvedAudience.recipientCount
+                    )
+                } else {
+                    Text(resolvedAudience.defaultApprovalRule.summary(for: resolvedAudience.recipientCount))
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+            }
         }
     }
 
     private var outgoingSection: some View {
-        Section {
+        Section("Recent Requests") {
             if requestService.outgoing.isEmpty {
                 Text("You haven’t sent any unlock requests yet.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             } else {
-                ForEach(requestService.outgoing.sorted { $0.createdDate > $1.createdDate }, id: \.stableID) { r in
-                    VStack(alignment: .leading, spacing: 4) {
+                ForEach(requestService.outgoing.sorted { $0.createdDate > $1.createdDate }, id: \.stableID) { request in
+                    VStack(alignment: .leading, spacing: 6) {
                         HStack {
-                            Text("\(r.minutesRequested) minute\(r.minutesRequested == 1 ? "" : "s")")
-                                .font(.subheadline.weight(.semibold))
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(request.audienceLabel)
+                                    .font(.headline)
+                                Text("\(request.minutesRequested) minute\(request.minutesRequested == 1 ? "" : "s")")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
 
                             Spacer()
 
-                            StatusPill(req: r)
+                            StatusPill(request: request)
                         }
 
-                        if let buddy = buddyService.buddies.first(where: { $0.remoteID == r.buddyID }) {
-                            Text("To: \(buddy.displayName)")
+                        Text(request.progressSummary)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+
+                        if let target = request.targetDescription, !target.isEmpty {
+                            Text("For: \(target)")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
 
-                        if let reason = r.reason, !reason.isEmpty {
+                        if let reason = request.reason, !reason.isEmpty {
                             Text("“\(reason)”")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
 
-                        Text(relativeDateString(from: r.createdDate))
+                        if !request.responses.isEmpty {
+                            VStack(alignment: .leading, spacing: 4) {
+                                ForEach(request.responses) { response in
+                                    Text(responseLine(for: response))
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                        }
+
+                        Text(relativeDateString(from: request.createdDate))
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                     }
                     .padding(.vertical, 4)
                 }
             }
-        } header: {
-            Text("Your recent requests")
         }
     }
 
-    // MARK: - Actions
+    private var unlockCapableBuddies: [LocalBuddy] {
+        buddyService.buddies.filter(\.canApproveUnlocks)
+    }
+
+    private var availableCategories: [BuddyCategory] {
+        buddyService.categories.filter { buddyService.audienceForCategory($0) != nil }
+    }
+
+    private var availableGroups: [BuddyGroup] {
+        buddyService.groups.filter { buddyService.audienceForGroup($0) != nil }
+    }
+
+    private var resolvedAudience: BuddyAudience? {
+        switch audienceType {
+        case .individual:
+            guard let selectedBuddyID,
+                  let buddy = buddyService.buddy(for: selectedBuddyID),
+                  buddy.canApproveUnlocks else {
+                return nil
+            }
+            return buddyService.audienceForBuddy(buddy)
+
+        case .selectedBuddies:
+            return buddyService.audienceForSelectedBuddies(selectedBuddyIDs)
+
+        case .category:
+            guard let selectedCategoryID,
+                  let category = buddyService.category(for: selectedCategoryID) else {
+                return nil
+            }
+            return buddyService.audienceForCategory(category)
+
+        case .group:
+            guard let selectedGroupID,
+                  let group = buddyService.group(for: selectedGroupID) else {
+                return nil
+            }
+            return buddyService.audienceForGroup(group)
+
+        case .everyone:
+            return buddyService.audienceForEveryone()
+        }
+    }
+
+    private var shouldShowApprovalRuleEditor: Bool {
+        guard let resolvedAudience else { return false }
+        return resolvedAudience.allowsRuleOverride && resolvedAudience.recipientCount > 1
+    }
 
     private var canSend: Bool {
-        !buddyService.buddies.isEmpty && minutes > 0
+        resolvedAudience != nil && minutes > 0
+    }
+
+    private func preselectFirstBuddyIfNeeded() {
+        if selectedBuddyID == nil {
+            selectedBuddyID = unlockCapableBuddies.first?.id
+        }
+
+        if selectedCategoryID == nil {
+            selectedCategoryID = availableCategories.first?.id
+        }
+
+        if selectedGroupID == nil {
+            selectedGroupID = availableGroups.first?.id
+        }
     }
 
     private func sendRequest() {
-        guard !buddyService.buddies.isEmpty else { return }
+        guard let resolvedAudience else { return }
 
-        let buddy = buddyService.buddies[selectedBuddyIndex.clamped(to: 0..<(buddyService.buddies.count))]
-        let name = displayName.isEmpty ? "You" : displayName
+        let name = displayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            ? "You"
+            : displayName
 
-        print(buddy)
-        guard let buddyID = buddy.remoteID else {
-            print("Error: buddy has no remoteID")
-            return
-        }
-        
         requestService.sendRequest(
             requesterName: name,
-            buddyID: buddyID,
+            audience: resolvedAudience,
             minutes: minutes,
-            reason: reason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : reason
+            targetDescription: targetDescription,
+            reason: reason,
+            urgency: urgency,
+            approvalRule: overrideApprovalRule ? customApprovalRule : nil
         )
 
+        targetDescription = ""
         reason = ""
         showingSentConfirmation = true
+    }
+
+    private func responseLine(for response: UnlockApprovalResponse) -> String {
+        let action = response.vote == .approved
+            ? "approved"
+            : "denied"
+        let note = response.note.map { " - \($0)" } ?? ""
+        return "\(response.responderName) \(action)\(note)"
     }
 
     private func relativeDateString(from date: Date) -> String {
@@ -165,19 +345,11 @@ struct AskBuddyView: View {
     }
 }
 
-// MARK: - Helpers
-
-private extension Int {
-    func clamped(to range: Range<Int>) -> Int {
-        return Swift.max(range.lowerBound, Swift.min(self, range.upperBound - 1))
-    }
-}
-
 private struct StatusPill: View {
-    let req: UnlockRequest
+    let request: UnlockRequest
 
     var body: some View {
-        switch req.decision {
+        switch request.decision {
         case .pending:
             Text("Pending")
                 .font(.caption2.weight(.semibold))
@@ -185,7 +357,7 @@ private struct StatusPill: View {
                 .padding(.vertical, 4)
                 .background(.thinMaterial, in: Capsule())
         case .approved:
-            Text("Approved \(req.approvedMinutes ?? req.minutesRequested)m")
+            Text("Approved \(request.approvedMinutes ?? request.minutesRequested)m")
                 .font(.caption2.weight(.semibold))
                 .padding(.horizontal, 8)
                 .padding(.vertical, 4)

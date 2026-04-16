@@ -15,6 +15,7 @@ enum CreateDestination: Identifiable {
 
 struct MainTabView: View {
     @EnvironmentObject var screenTime: ScreenTimeManager
+    @Environment(\.scenePhase) private var scenePhase
 
     @StateObject private var buddyService: LocalBuddyService
     @StateObject private var friendRequestService: FriendRequestService
@@ -31,6 +32,7 @@ struct MainTabView: View {
 
     // The currently active full-screen destination (New Challenge / New Moment)
     @State private var activeCreateDestination: CreateDestination?
+    @State private var showingShieldPrompt = false
 
     init() {
         let buddyService = LocalBuddyService()
@@ -151,6 +153,55 @@ struct MainTabView: View {
                     CreateMomentView()
                 }
             }
+        }
+        .sheet(isPresented: $showingShieldPrompt) {
+            NavigationStack {
+                ShieldPromptView(
+                    buddyService: buddyService,
+                    requestService: requestService,
+                    challengesService: challengesService
+                )
+                .environmentObject(screenTime)
+            }
+        }
+        .onAppear {
+            consumePendingShieldUnlockRequest()
+            consumeApprovedOutgoingRequests()
+        }
+        .onChange(of: scenePhase) { newPhase in
+            if newPhase == .active {
+                consumePendingShieldUnlockRequest()
+                consumeApprovedOutgoingRequests()
+            }
+        }
+        .onReceive(requestService.$outgoing) { _ in
+            consumeApprovedOutgoingRequests()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .buddyLockShieldUnlockRequested)) { _ in
+            consumePendingShieldUnlockRequest()
+        }
+    }
+
+    private func consumePendingShieldUnlockRequest() {
+        let appGroup = "group.com.example.BuddyLock"
+        let unlockRequestedKey = "BuddyLock_Shield_UnlockRequested"
+        let unlockRequestedAtKey = "BuddyLock_Shield_UnlockRequestedAt"
+
+        guard let defaults = UserDefaults(suiteName: appGroup) else { return }
+        guard defaults.bool(forKey: unlockRequestedKey) else { return }
+
+        defaults.removeObject(forKey: unlockRequestedKey)
+        defaults.removeObject(forKey: unlockRequestedAtKey)
+
+        if !showingShieldPrompt {
+            showingShieldPrompt = true
+        }
+    }
+
+    private func consumeApprovedOutgoingRequests() {
+        while let approvedRequest = requestService.consumeApprovedOutgoingRequest() {
+            let minutes = approvedRequest.approvedMinutes ?? approvedRequest.minutesRequested
+            screenTime.grantTemporaryException(minutes: minutes)
         }
     }
 }

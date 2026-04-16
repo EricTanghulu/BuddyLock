@@ -86,7 +86,7 @@ struct ChallengeCreateView: View {
                 Picker("Buddy", selection: $selectedBuddyID) {
                     Text("Select…").tag(Optional<UUID>.none)
                     ForEach(buddies.buddies) { b in
-                        Text(b.buddyUserID).tag(Optional(b.id))
+                        Text(b.resolvedDisplayName).tag(Optional(b.id))
                     }
                 }
             }
@@ -101,7 +101,7 @@ struct ChallengeCreateView: View {
                     .foregroundStyle(.secondary)
             } else {
                 ForEach(buddies.buddies) { b in
-                    Toggle(b.buddyUserID, isOn: Binding(
+                    Toggle(b.resolvedDisplayName, isOn: Binding(
                         get: { selectedGroupBuddyIDs.contains(b.id) },
                         set: { newValue in
                             if newValue {

@@ -1,7 +1,4 @@
 import SwiftUI
-#if canImport(FamilyControls)
-import FamilyControls
-#endif
 
 struct ApprovalsView: View {
     @ObservedObject var buddyService: LocalBuddyService
@@ -9,11 +6,9 @@ struct ApprovalsView: View {
 
     @EnvironmentObject var screenTime: ScreenTimeManager
 
-    /// Fallback: general approve callback (kept for compatibility)
-    var onApprove: (Int) -> Void
-
     @State private var approvingRequest: UnlockRequest?
     @State private var approveMinutes: Int = 10
+    @State private var responseNote: String = ""
 
     var body: some View {
         List {
@@ -31,57 +26,65 @@ struct ApprovalsView: View {
                 .accessibilityLabel("Refresh")
             }
         }
-        .sheet(item: $approvingRequest) { req in
-            approveSheet(for: req)
+        .sheet(item: $approvingRequest) { request in
+            approveSheet(for: request)
         }
     }
 
-    // MARK: - Sections
-
     private var incomingSection: some View {
-        Section {
+        Section("Incoming") {
             if requestService.incoming.isEmpty {
                 Text("No incoming requests.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             } else {
-                ForEach(requestService.incoming.sorted(by: { $0.createdDate > $1.createdDate })) { r in
-                    VStack(alignment: .leading, spacing: 6) {
-                        HStack {
-                            Text(r.requesterName)
-                                .font(.subheadline.weight(.semibold))
+                ForEach(requestService.incoming.sorted(by: { $0.createdDate > $1.createdDate })) { request in
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack(alignment: .top) {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(request.requesterName)
+                                    .font(.headline)
+                                Text(request.audienceLabel)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+
                             Spacer()
-                            StatusPill(req: r)
+                            StatusPill(request: request)
                         }
 
-                        Text("Requested: \(r.minutesRequested) minute\(r.minutesRequested == 1 ? "" : "s")")
+                        Text(request.progressSummary)
                             .font(.caption)
                             .foregroundStyle(.secondary)
 
-                        if let buddy = buddyService.buddies.first(where: { $0.remoteID == r.buddyID }) {
-                            Text("Buddy: \(buddy.displayName)")
-                                .font(.caption2)
+                        Text("Requested \(request.minutesRequested) minute\(request.minutesRequested == 1 ? "" : "s")")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+
+                        Text(request.approvalRule.summary(for: request.recipientCount))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+
+                        if let target = request.targetDescription, !target.isEmpty {
+                            Text("For: \(target)")
+                                .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
 
-                        if let reason = r.reason, !reason.isEmpty {
+                        if let reason = request.reason, !reason.isEmpty {
                             Text("“\(reason)”")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
 
-                        Text(relativeDateString(from: r.createdDate))
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
+                        if !request.responses.isEmpty {
+                            responseSummary(request.responses)
+                        }
 
-                        if r.decision == .pending {
+                        if requestService.canCurrentUserRespond(to: request) {
                             HStack {
-                                
                                 Button(role: .destructive) {
-                                    guard let requestID = r.id else {
-                                        print("Error: request has no ID")
-                                        return
-                                    }
+                                    guard let requestID = request.id else { return }
                                     requestService.deny(requestID: requestID)
                                 } label: {
                                     Text("Deny")
@@ -90,74 +93,78 @@ struct ApprovalsView: View {
                                 Spacer()
 
                                 Button {
-                                    approveMinutes = r.minutesRequested
-                                    approvingRequest = r
+                                    approveMinutes = request.minutesRequested
+                                    responseNote = ""
+                                    approvingRequest = request
                                 } label: {
                                     Text("Approve")
                                 }
                                 .buttonStyle(.borderedProminent)
                             }
                             .font(.footnote)
-                            .padding(.top, 4)
-                        }
-                    }
-                    .padding(.vertical, 4)
-                }
-            }
-        } header: {
-            Text("Incoming")
-        }
-    }
-
-    private var outgoingSection: some View {
-        Section {
-            if requestService.outgoing.isEmpty {
-                Text("You haven’t sent any requests yet.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-            } else {
-                ForEach(requestService.outgoing.sorted(by: { $0.createdDate > $1.createdDate })) { r in
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack {
-                            Text("\(r.minutesRequested) minute\(r.minutesRequested == 1 ? "" : "s")")
-                                .font(.subheadline.weight(.semibold))
-                            Spacer()
-                            StatusPill(req: r)
-                        }
-
-                        if let buddy = buddyService.buddies.first(where: { $0.remoteID == r.buddyID }) {
-                            Text("To: \(buddy.displayName)")
+                        } else if let myResponse = requestService.currentUserResponse(for: request) {
+                            Text(responseLine(for: myResponse, prefix: "You"))
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
 
-                        if let reason = r.reason, !reason.isEmpty {
-                            Text("“\(reason)”")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-
-                        Text(relativeDateString(from: r.createdDate))
+                        Text(relativeDateString(from: request.createdDate))
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                     }
                     .padding(.vertical, 4)
                 }
             }
-        } header: {
-            Text("Your requests")
         }
     }
 
-    // MARK: - Approve sheet
+    private var outgoingSection: some View {
+        Section("Your Requests") {
+            if requestService.outgoing.isEmpty {
+                Text("You haven’t sent any requests yet.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            } else {
+                ForEach(requestService.outgoing.sorted(by: { $0.createdDate > $1.createdDate })) { request in
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(request.audienceLabel)
+                                    .font(.headline)
+                                Text("\(request.minutesRequested) minute\(request.minutesRequested == 1 ? "" : "s")")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
 
-    private func approveSheet(for req: UnlockRequest) -> some View {
+                            Spacer()
+                            StatusPill(request: request)
+                        }
+
+                        Text(request.progressSummary)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+
+                        if !request.responses.isEmpty {
+                            responseSummary(request.responses)
+                        }
+
+                        Text(relativeDateString(from: request.createdDate))
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.vertical, 4)
+                }
+            }
+        }
+    }
+
+    private func approveSheet(for request: UnlockRequest) -> some View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 16) {
-                Text("Approve unlock for \(req.requesterName)?")
+                Text("Approve unlock for \(request.requesterName)?")
                     .font(.headline)
 
-                Text("Requested \(req.minutesRequested) minute\(req.minutesRequested == 1 ? "" : "s"). You can adjust the time below.")
+                Text("You can approve their requested time or trim it down. Add a short note if you want to give context.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
 
@@ -168,10 +175,14 @@ struct ApprovalsView: View {
                     step: 5
                 )
 
+                TextField("Optional note", text: $responseNote, axis: .vertical)
+                    .lineLimit(2...4)
+                    .textFieldStyle(.roundedBorder)
+
                 Spacer()
 
                 Button {
-                    approve(req, minutes: approveMinutes)
+                    approve(request, minutes: approveMinutes, note: responseNote)
                     approvingRequest = nil
                 } label: {
                     Text("Approve unlock")
@@ -187,28 +198,41 @@ struct ApprovalsView: View {
                 }
             }
             .padding()
-            .navigationTitle("Approve request")
+            .navigationTitle("Approve Request")
             .navigationBarTitleDisplayMode(.inline)
         }
     }
 
-    // MARK: - Actions
+    private func approve(_ request: UnlockRequest, minutes: Int, note: String) {
+        guard let requestID = request.id else { return }
+        requestService.approve(
+            requestID: requestID,
+            minutes: max(1, minutes),
+            note: note.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : note
+        )
+    }
 
-    private func approve(_ req: UnlockRequest, minutes: Int) {
-        let clamped = max(1, minutes)
-        // Grant the actual exception now
-        screenTime.grantTemporaryException(minutes: clamped)
-        // Update our local store to mark it approved
-        
-        guard let requestID = req.id else {
-            print("Error: request has no ID")
-            return
+    private func responseSummary(_ responses: [UnlockApprovalResponse]) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            ForEach(responses) { response in
+                Text(responseLine(for: response))
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
         }
+    }
 
-        requestService.approve(requestID: requestID, minutes: clamped)
-
-        // And call the fallback callback (for compatibility)
-        onApprove(clamped)
+    private func responseLine(for response: UnlockApprovalResponse, prefix: String? = nil) -> String {
+        let name = prefix ?? response.responderName
+        let verb = response.vote == .approved ? "approved" : "denied"
+        let minutesText: String
+        if response.vote == .approved, let approvedMinutes = response.approvedMinutes {
+            minutesText = " (\(approvedMinutes)m)"
+        } else {
+            minutesText = ""
+        }
+        let noteText = response.note.map { " - \($0)" } ?? ""
+        return "\(name) \(verb)\(minutesText)\(noteText)"
     }
 
     private func relativeDateString(from date: Date) -> String {
@@ -218,12 +242,11 @@ struct ApprovalsView: View {
     }
 }
 
-// Reuse StatusPill from above
-
 private struct StatusPill: View {
-    let req: UnlockRequest
+    let request: UnlockRequest
+
     var body: some View {
-        switch req.decision {
+        switch request.decision {
         case .pending:
             Text("Pending")
                 .font(.caption2.weight(.semibold))
@@ -231,7 +254,7 @@ private struct StatusPill: View {
                 .padding(.vertical, 4)
                 .background(.thinMaterial, in: Capsule())
         case .approved:
-            Text("Approved \(req.approvedMinutes ?? req.minutesRequested)m")
+            Text("Approved \(request.approvedMinutes ?? request.minutesRequested)m")
                 .font(.caption2.weight(.semibold))
                 .padding(.horizontal, 8)
                 .padding(.vertical, 4)

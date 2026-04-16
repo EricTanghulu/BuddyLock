@@ -169,6 +169,14 @@ final class FriendRequestService: ObservableObject {
         batch.deleteDocument(requestRef)
 
         try await batch.commit()
+
+        buddyService.addBuddy(
+            LocalBuddy(
+                remoteID: senderID,
+                buddyUserID: senderID,
+                displayName: request.fromUserID
+            )
+        )
     }
 
 

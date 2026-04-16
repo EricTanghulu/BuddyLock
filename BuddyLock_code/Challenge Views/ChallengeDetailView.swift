@@ -68,7 +68,7 @@ struct ChallengeDetailView: View {
         if pid == challenges.localUserID {
             return "You"
         }
-        return buddies.buddies.first(where: { $0.id == pid })?.buddyUserID ?? "Unknown"
+        return buddies.displayName(for: pid)
     }
 
     private func typeDescription(for type: ChallengeType) -> String {
