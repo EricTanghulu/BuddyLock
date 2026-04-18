@@ -311,8 +311,7 @@ final class UnlockRequestService: ObservableObject {
             .whereField("recipientUserIDs", arrayContains: currentUserID)
             .order(by: "createdAt", descending: true)
             .addSnapshotListener { [weak self] snapshot, error in
-                if let error {
-                    print("Incoming request listener error: \(error)")
+                if error != nil {
                     return
                 }
 
@@ -324,8 +323,7 @@ final class UnlockRequestService: ObservableObject {
             .whereField("requesterID", isEqualTo: currentUserID)
             .order(by: "createdAt", descending: true)
             .addSnapshotListener { [weak self] snapshot, error in
-                if let error {
-                    print("Outgoing request listener error: \(error)")
+                if error != nil {
                     return
                 }
 

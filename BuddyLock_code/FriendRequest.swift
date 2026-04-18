@@ -51,11 +51,6 @@ final class FriendRequestService: ObservableObject {
     ) {
         self.currentUserID = Auth.auth().currentUser?.uid ?? "unknown"
         self.buddyService = buddyService
-        if let user = Auth.auth().currentUser {
-            print("Friend Request UID:", user.uid)
-        } else {
-            print("Not signed in!")
-        }
 
         startListening()
     }
@@ -74,7 +69,6 @@ final class FriendRequestService: ObservableObject {
             .addSnapshotListener { [weak self] snapshot, error in
                 guard let self,
                       let documents = snapshot?.documents else {
-                    print("❌ Friend request listener error:", error?.localizedDescription ?? "")
                     return
                 }
 

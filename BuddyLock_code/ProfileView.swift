@@ -97,7 +97,7 @@ struct ProfileView: View {
     private var focusStatusCard: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Label("Focus & blocking", systemImage: "lock.app.fill")
+                Label("Focus & blocking", systemImage: "lock.fill")
                     .font(.headline)
                 Spacer()
                 Circle()

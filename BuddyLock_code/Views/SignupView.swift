@@ -28,7 +28,6 @@ struct SignupView: View {
                 .textFieldStyle(.roundedBorder)
             
             Button("Create Account") {
-                print("Signup button tapped 2")
                 auth.signUp(email: email, username: username, password: password)
             }
             .padding()

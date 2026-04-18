@@ -19,11 +19,6 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
   func application(_ application: UIApplication,
                    didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
       FirebaseApp.configure()
-      if FirebaseApp.app() != nil {
-              print("Firebase initialized successfully")
-          } else {
-              print("Firebase initialization failed")
-          }
 
       let notificationCenter = UNUserNotificationCenter.current()
       notificationCenter.delegate = self
@@ -31,10 +26,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
       notificationCenter.requestAuthorization(options: [.alert, .badge, .sound]) { granted, error in
           if let error {
               print("Notification authorization failed: \(error)")
-              return
           }
-
-          print("Notification authorization granted: \(granted)")
       }
       
     return true

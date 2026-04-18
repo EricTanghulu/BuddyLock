@@ -207,12 +207,10 @@ final class ScreenTimeManager: ObservableObject {
         #if canImport(FamilyControls)
         do {
             try await AuthorizationCenter.shared.requestAuthorization(for: .individual)
-            print("hello")
-            await refreshAuthorizationState()
         } catch {
             print("ScreenTimeManager: Authorization error: \(error)")
-            await refreshAuthorizationState()
         }
+        await refreshAuthorizationState()
         #else
         // On platforms without FamilyControls this is a no-op so previews still work.
         isAuthorized = false
@@ -222,25 +220,11 @@ final class ScreenTimeManager: ObservableObject {
 
     func refreshAuthorizationState() async {
         #if canImport(FamilyControls)
-        print("can import family controls")
-        do {
-            try await AuthorizationCenter.shared.requestAuthorization(for: .individual)
-            print("✅ requestAuthorization returned")
-
-        } catch {
-            print("❌ requestAuthorization threw:", error)
-        }
-        let after = AuthorizationCenter.shared.authorizationStatus
-            print("🔍 Status AFTER request:", after)
-        
-
         await MainActor.run {
-            print("Status:", AuthorizationCenter.shared.authorizationStatus)
             let status = AuthorizationCenter.shared.authorizationStatus
             self.isAuthorized = (status == .approved)
             self.hasResolvedAuthorizationStatus = true
         }
-        print("isAuthorized is (p2)...", isAuthorized)
         #else
         isAuthorized = false
         hasResolvedAuthorizationStatus = true

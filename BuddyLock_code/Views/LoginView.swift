@@ -24,7 +24,6 @@ struct LoginView: View {
                     .textFieldStyle(.roundedBorder)
                 
                 Button("Login") {
-                    print("Login button tapped") // 🔹 confirm the button works
                     auth.signIn(email: email, password: password)
                 }
                 .padding()

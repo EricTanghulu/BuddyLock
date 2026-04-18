@@ -41,7 +41,7 @@ class ShieldConfigurationExtension: ShieldConfigurationDataSource {
         return ShieldConfiguration(
             backgroundBlurStyle: .systemThickMaterial,
             backgroundColor: .systemBackground,
-            icon: UIImage(systemName: "lock.app.fill"),
+            icon: UIImage(systemName: "lock.fill"),
             title: titleLabel,
             subtitle: subtitleLabel,
             primaryButtonLabel: primaryLabel,
@@ -66,7 +66,7 @@ class ShieldConfigurationExtension: ShieldConfigurationDataSource {
         )
 
         let subtitleLabel = ShieldConfiguration.Label(
-            text: "“\(webDomain.domain)” is blocked to help you stay on track.",
+            text: "“\(webDomain.domain ?? "This site")” is blocked to help you stay on track.",
             color: .secondaryLabel
         )
 
