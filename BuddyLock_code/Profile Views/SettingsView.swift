@@ -17,6 +17,16 @@ struct SettingsView: View {
     private var appSettingsSection: some View {
         Section("App Settings") {
             NavigationLink {
+                EditProfileView(buddyService: buddyService)
+            } label: {
+                settingsRow(
+                    icon: "person.crop.circle.badge.pencil",
+                    title: "Edit Profile",
+                    subtitle: "Name and identity"
+                )
+            }
+
+            NavigationLink {
                 ScreenTimeDefaultsSettingsView()
             } label: {
                 settingsRow(
