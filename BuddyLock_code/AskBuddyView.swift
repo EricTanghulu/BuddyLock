@@ -24,6 +24,24 @@ struct AskBuddyView: View {
     @State private var customApprovalRule = BuddyApprovalRule(kind: .majority)
     @State private var showingSentConfirmation = false
 
+    init(
+        buddyService: LocalBuddyService,
+        requestService: UnlockRequestService,
+        initialAudienceType: BuddyAudienceType = .individual,
+        initialBuddyID: UUID? = nil,
+        initialBuddyIDs: Set<UUID> = [],
+        initialCategoryID: UUID? = nil,
+        initialGroupID: UUID? = nil
+    ) {
+        self.buddyService = buddyService
+        self.requestService = requestService
+        _audienceType = State(initialValue: initialAudienceType)
+        _selectedBuddyID = State(initialValue: initialBuddyID)
+        _selectedBuddyIDs = State(initialValue: initialBuddyIDs)
+        _selectedCategoryID = State(initialValue: initialCategoryID)
+        _selectedGroupID = State(initialValue: initialGroupID)
+    }
+
     var body: some View {
         Form {
             audienceSection
