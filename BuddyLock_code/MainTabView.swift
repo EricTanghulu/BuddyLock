@@ -1,4 +1,9 @@
 import SwiftUI
+import FirebaseAuth
+
+#if canImport(FamilyControls)
+import FamilyControls
+#endif
 
 // What we can create from the pop-up
 enum CreateDestination: Identifiable {
@@ -33,6 +38,7 @@ struct MainTabView: View {
     // The currently active full-screen destination (New Challenge / New Moment)
     @State private var activeCreateDestination: CreateDestination?
     @State private var showingShieldPrompt = false
+    @State private var showingOnboarding = false
 
     init() {
         let buddyService = LocalBuddyService()
@@ -166,6 +172,7 @@ struct MainTabView: View {
         .fullScreenCover(
             isPresented: Binding(
                 get: {
+                    !showingOnboarding &&
                     screenTime.hasResolvedAuthorizationStatus &&
                     !screenTime.isAuthorized
                 },
@@ -192,6 +199,7 @@ struct MainTabView: View {
             Task {
                 await screenTime.refreshAuthorizationState()
             }
+            refreshOnboardingPresentation()
             consumePendingShieldUnlockRequest()
             consumeApprovedOutgoingRequests()
         }
@@ -200,15 +208,33 @@ struct MainTabView: View {
                 Task {
                     await screenTime.refreshAuthorizationState()
                 }
+                refreshOnboardingPresentation()
                 consumePendingShieldUnlockRequest()
                 consumeApprovedOutgoingRequests()
             }
+        }
+        .fullScreenCover(isPresented: $showingOnboarding) {
+            OnboardingView(
+                buddyCount: buddyService.buddies.count,
+                hasBlockedSelection: !screenTime.selectionSummary.isEmpty,
+                onFinish: { destination in
+                    markOnboardingComplete()
+                    showingOnboarding = false
+                    if let destination {
+                        selectedTab = destination
+                    }
+                }
+            )
+            .environmentObject(screenTime)
         }
         .onReceive(requestService.$outgoing) { _ in
             consumeApprovedOutgoingRequests()
         }
         .onReceive(NotificationCenter.default.publisher(for: .buddyLockShieldUnlockRequested)) { _ in
             consumePendingShieldUnlockRequest()
+        }
+        .onReceive(buddyService.$buddies) { _ in
+            refreshOnboardingPresentation()
         }
     }
 
@@ -233,6 +259,27 @@ struct MainTabView: View {
             let minutes = approvedRequest.approvedMinutes ?? approvedRequest.minutesRequested
             screenTime.grantTemporaryException(minutes: minutes)
         }
+    }
+
+    private func refreshOnboardingPresentation() {
+        showingOnboarding = shouldPresentOnboarding
+    }
+
+    private var shouldPresentOnboarding: Bool {
+        guard Auth.auth().currentUser != nil else { return false }
+        return !isOnboardingComplete
+    }
+
+    private var isOnboardingComplete: Bool {
+        UserDefaults.standard.bool(forKey: onboardingCompletionKey)
+    }
+
+    private var onboardingCompletionKey: String {
+        "BuddyLock.onboardingCompleted.\(Auth.auth().currentUser?.uid ?? "anonymous")"
+    }
+
+    private func markOnboardingComplete() {
+        UserDefaults.standard.set(true, forKey: onboardingCompletionKey)
     }
 }
 
@@ -262,6 +309,332 @@ private struct ChallengeCreateContainer: View {
             }
         }
         .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+private enum OnboardingFinishDestination {
+    case home
+    case friends
+
+    var tabIndex: Int {
+        switch self {
+        case .home:
+            return 0
+        case .friends:
+            return 3
+        }
+    }
+}
+
+private enum OnboardingStep: Int, CaseIterable {
+    case welcome
+    case profile
+    case screenTime
+    case buddies
+
+    var title: String {
+        switch self {
+        case .welcome:
+            return "Welcome"
+        case .profile:
+            return "Your Name"
+        case .screenTime:
+            return "Screen Time"
+        case .buddies:
+            return "Your People"
+        }
+    }
+}
+
+private struct OnboardingView: View {
+    @EnvironmentObject var screenTime: ScreenTimeManager
+
+    @AppStorage("BuddyLock.displayName")
+    private var storedDisplayName: String = ""
+
+    let buddyCount: Int
+    let hasBlockedSelection: Bool
+    let onFinish: (Int?) -> Void
+
+    @State private var step: OnboardingStep = .welcome
+    @State private var draftDisplayName: String = ""
+    @State private var isSavingDisplayName = false
+    @State private var showingBlockedAppsPicker = false
+
+    var body: some View {
+        NavigationStack {
+            VStack(alignment: .leading, spacing: 24) {
+                progressHeader
+                content
+                Spacer()
+                footerActions
+            }
+            .padding(24)
+            .navigationBarBackButtonHidden(true)
+            .sheet(isPresented: $showingBlockedAppsPicker) {
+                #if canImport(FamilyControls)
+                NavigationStack {
+                    FamilyActivityPicker(selection: $screenTime.selection)
+                        .navigationTitle("Choose blocked apps")
+                        .navigationBarTitleDisplayMode(.inline)
+                        .toolbar {
+                            ToolbarItem(placement: .confirmationAction) {
+                                Button("Done") {
+                                    showingBlockedAppsPicker = false
+                                }
+                            }
+                        }
+                }
+                #else
+                Text("Screen Time selection isn’t available on this device.")
+                    .padding()
+                #endif
+            }
+            .onAppear {
+                draftDisplayName = storedDisplayName
+            }
+        }
+        .interactiveDismissDisabled()
+    }
+
+    private var progressHeader: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Let’s get BuddyLock ready")
+                .font(.largeTitle.bold())
+
+            Text(step.title)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.secondary)
+
+            HStack(spacing: 8) {
+                ForEach(OnboardingStep.allCases, id: \.rawValue) { current in
+                    Capsule()
+                        .fill(current.rawValue <= step.rawValue ? Color.accentColor : Color(.systemGray5))
+                        .frame(height: 8)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        switch step {
+        case .welcome:
+            welcomeStep
+        case .profile:
+            profileStep
+        case .screenTime:
+            screenTimeStep
+        case .buddies:
+            buddiesStep
+        }
+    }
+
+    private var welcomeStep: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            onboardingCard(
+                title: "A calmer setup, fast",
+                detail: "BuddyLock works best when three things are in place: your name, Screen Time access, and at least one next step toward accountability."
+            )
+
+            onboardingBullet(
+                title: "Protect your attention",
+                detail: "Turn on Screen Time so BuddyLock can actually block distractions."
+            )
+            onboardingBullet(
+                title: "Make it social",
+                detail: "Buddies and challenges work better when the app knows who you are."
+            )
+            onboardingBullet(
+                title: "Start small",
+                detail: "You do not need to set up every feature right now. One solid first step is enough."
+            )
+        }
+    }
+
+    private var profileStep: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            onboardingCard(
+                title: "What should people call you?",
+                detail: "This is what your buddies and challenge leaderboards will show."
+            )
+
+            TextField("Display name", text: $draftDisplayName)
+                .textFieldStyle(.roundedBorder)
+                .textInputAutocapitalization(.words)
+
+            Text("You can change this later in Settings.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private var screenTimeStep: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            onboardingCard(
+                title: screenTime.isAuthorized ? "Screen Time is ready" : "Turn on Screen Time",
+                detail: screenTime.isAuthorized
+                    ? "Nice. BuddyLock can now block distractions and make unlock approvals actually matter."
+                    : "This is the permission that lets BuddyLock do the real work."
+            )
+
+            if screenTime.isAuthorized {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text(hasBlockedSelection ? screenTime.selectionSummary : "No blocked apps picked yet.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+
+                    Button {
+                        showingBlockedAppsPicker = true
+                    } label: {
+                        Label(hasBlockedSelection ? "Edit blocked apps" : "Choose blocked apps", systemImage: "square.stack.3d.up")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                }
+            } else {
+                Button {
+                    Task {
+                        await screenTime.requestAuthorization()
+                    }
+                } label: {
+                    Label("Turn on Screen Time", systemImage: "hand.raised.fill")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+            }
+        }
+    }
+
+    private var buddiesStep: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            onboardingCard(
+                title: buddyCount > 0 ? "You already have people in your corner" : "Next step: add a buddy",
+                detail: buddyCount > 0
+                    ? "You’re set up enough to start exploring. If you want, jump straight to Friends and keep building the circle."
+                    : "You don’t need to do this right now, but adding one real person makes BuddyLock feel much more useful."
+            )
+
+            onboardingBullet(
+                title: "Friends tab",
+                detail: "Send a buddy request when you’re ready to add accountability."
+            )
+            onboardingBullet(
+                title: "Home tab",
+                detail: "If you’d rather start solo, pick blocked apps and run your first focus session."
+            )
+        }
+    }
+
+    private var footerActions: some View {
+        VStack(spacing: 10) {
+            switch step {
+            case .welcome:
+                primaryButton("Get Started") {
+                    step = .profile
+                }
+
+            case .profile:
+                primaryButton(isSavingDisplayName ? "Saving..." : "Continue") {
+                    saveDisplayNameAndContinue()
+                }
+                .disabled(isSavingDisplayName || normalizedDisplayName.isEmpty)
+
+                secondaryButton("Back") {
+                    step = .welcome
+                }
+
+            case .screenTime:
+                primaryButton("Continue") {
+                    step = .buddies
+                }
+                .disabled(!screenTime.isAuthorized)
+
+                secondaryButton("Back") {
+                    step = .profile
+                }
+
+            case .buddies:
+                primaryButton(buddyCount > 0 ? "Finish" : "Go to Friends") {
+                    onFinish(buddyCount > 0 ? OnboardingFinishDestination.home.tabIndex : OnboardingFinishDestination.friends.tabIndex)
+                }
+
+                if buddyCount > 0 {
+                    secondaryButton("Go to Friends instead") {
+                        onFinish(OnboardingFinishDestination.friends.tabIndex)
+                    }
+                } else {
+                    secondaryButton("Finish on Home instead") {
+                        onFinish(OnboardingFinishDestination.home.tabIndex)
+                    }
+                }
+            }
+        }
+    }
+
+    private func onboardingCard(title: String, detail: String) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.title3.weight(.bold))
+            Text(detail)
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+        }
+        .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+    }
+
+    private func onboardingBullet(title: String, detail: String) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: "checkmark.circle.fill")
+                .foregroundStyle(.green)
+                .padding(.top, 2)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                Text(detail)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private func primaryButton(_ title: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(title)
+                .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.borderedProminent)
+    }
+
+    private func secondaryButton(_ title: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(title)
+                .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.bordered)
+    }
+
+    private var normalizedDisplayName: String {
+        draftDisplayName.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func saveDisplayNameAndContinue() {
+        let resolvedName = normalizedDisplayName
+        guard !resolvedName.isEmpty else { return }
+
+        isSavingDisplayName = true
+        storedDisplayName = resolvedName
+
+        Task {
+            try? await UserProfileStore.updateCurrentUserDisplayName(resolvedName)
+            await MainActor.run {
+                isSavingDisplayName = false
+                step = .screenTime
+            }
+        }
     }
 }
 
