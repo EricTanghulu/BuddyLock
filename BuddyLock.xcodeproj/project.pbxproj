@@ -20,6 +20,7 @@
 		0CBD66A32EDBA6B80055B9D7 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 0CBD66A22EDBA6B80055B9D7 /* FirebaseFirestore */; };
 		0CDFA77D2F0D66CE008F81DA /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 0CDFA77C2F0D66CE008F81DA /* GoogleService-Info.plist */; };
 		0CFDC9B02F0DC3B3007CEEBE /* FriendRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CFDC9AF2F0DC3B3007CEEBE /* FriendRequest.swift */; };
+		1A5FBC072F74814600A1C0DE /* UserProfileStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A5FBC062F74814600A1C0DE /* UserProfileStore.swift */; };
 		311CCA7F2E59822300E4E9B1 /* ApprovalsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 311CCA7E2E59822000E4E9B1 /* ApprovalsView.swift */; };
 		311CCA812E59823500E4E9B1 /* AskBuddyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 311CCA802E59823300E4E9B1 /* AskBuddyView.swift */; };
 		311CCA832E59825300E4E9B1 /* UnlockRequestService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 311CCA822E59824F00E4E9B1 /* UnlockRequestService.swift */; };
@@ -92,6 +93,7 @@
 		0CBD66A02EDBA5650055B9D7 /* SignupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignupView.swift; sourceTree = "<group>"; };
 		0CDFA77C2F0D66CE008F81DA /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		0CFDC9AF2F0DC3B3007CEEBE /* FriendRequest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FriendRequest.swift; sourceTree = "<group>"; };
+		1A5FBC062F74814600A1C0DE /* UserProfileStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserProfileStore.swift; sourceTree = "<group>"; };
 		311CCA7E2E59822000E4E9B1 /* ApprovalsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApprovalsView.swift; sourceTree = "<group>"; };
 		311CCA802E59823300E4E9B1 /* AskBuddyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AskBuddyView.swift; sourceTree = "<group>"; };
 		311CCA822E59824F00E4E9B1 /* UnlockRequestService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnlockRequestService.swift; sourceTree = "<group>"; };
@@ -245,6 +247,14 @@
 			path = "Challenge Views";
 			sourceTree = "<group>";
 		};
+		1A5FBC052F7480E000A1C0DE /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				1A5FBC062F74814600A1C0DE /* UserProfileStore.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
 		313B2B6C2EDB884300F59DD1 /* Create Views */ = {
 			isa = PBXGroup;
 			children = (
@@ -293,6 +303,7 @@
 				0CBD66912EDB9D570055B9D7 /* Views */,
 				0CBD66902EDB9D460055B9D7 /* Models */,
 				0CBD668F2EDB9C950055B9D7 /* ViewModels */,
+				1A5FBC052F7480E000A1C0DE /* Services */,
 				0CBD668D2EDB9B610055B9D7 /* Firebase */,
 				313B2B6C2EDB884300F59DD1 /* Create Views */,
 				313B2B692EDB87F700F59DD1 /* Challenge Views */,
@@ -485,6 +496,7 @@
 				311CCA7F2E59822300E4E9B1 /* ApprovalsView.swift in Sources */,
 				316451F92ED97CF100CECA7D /* CreateMomentView.swift in Sources */,
 				311CCA872E59846700E4E9B1 /* BuddyData.swift in Sources */,
+				1A5FBC072F74814600A1C0DE /* UserProfileStore.swift in Sources */,
 				0CBD66A12EDBA5650055B9D7 /* SignupView.swift in Sources */,
 				313B2B682EDAD6E500F59DD1 /* PrivacySettingsView.swift in Sources */,
 				0CBD66992EDB9EDD0055B9D7 /* LoginView.swift in Sources */,

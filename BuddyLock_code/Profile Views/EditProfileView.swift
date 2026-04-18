@@ -6,6 +6,8 @@ struct EditProfileView: View {
     @AppStorage("BuddyLock.displayName")
     private var displayName: String = ""
 
+    @State private var editableDisplayName: String = ""
+
     var body: some View {
         Form {
             Section("Profile") {
@@ -31,13 +33,28 @@ struct EditProfileView: View {
                 }
                 .padding(.vertical, 4)
 
-                TextField("Display name (optional)", text: $displayName)
+                TextField("Display name (optional)", text: $editableDisplayName)
                 Text("This name is shown to your buddies and on leaderboards.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
         }
         .navigationTitle("Edit Profile")
+        .onAppear {
+            editableDisplayName = displayName
+        }
+        .onDisappear {
+            let previousDisplayName = UserProfileStore.normalizeDisplayName(displayName) ?? ""
+            let normalizedDisplayName = UserProfileStore.normalizeDisplayName(editableDisplayName) ?? ""
+            guard normalizedDisplayName != previousDisplayName else {
+                return
+            }
+
+            displayName = normalizedDisplayName
+            Task {
+                try? await UserProfileStore.updateCurrentUserDisplayName(normalizedDisplayName)
+            }
+        }
     }
 }
 

@@ -95,7 +95,7 @@ struct BuddyListView: View {
             ForEach(friendRequests.incomingRequests) { request in
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(request.fromUserID)
+                        Text(request.resolvedName)
                             .font(.headline)
                         Text("Wants to become your buddy.")
                             .font(.footnote)

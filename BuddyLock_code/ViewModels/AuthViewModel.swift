@@ -1,7 +1,5 @@
 import SwiftUI
-import FirebaseCore
 import FirebaseAuth
-import FirebaseFirestore
 
 class AuthViewModel: ObservableObject {
     @Published var userSession: FirebaseAuth.User?
@@ -25,8 +23,15 @@ class AuthViewModel: ObservableObject {
     }
     
     func signUp(email: String, username: String, password: String) {
-        print("Attempting signup with email:", email)
-        Auth.auth().createUser(withEmail: email, password: password) { result, error in
+        let normalizedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalizedUsername = UserProfileStore.normalizeUsername(username)
+        guard !normalizedUsername.isEmpty else {
+            print("Signup blocked: username was empty after normalization")
+            return
+        }
+
+        print("Attempting signup with email:", normalizedEmail)
+        Auth.auth().createUser(withEmail: normalizedEmail, password: password) { result, error in
             if let error = error {
                 print("Signup full error info:", error) // full NSError
                 print("Signup localizedDescription:", error.localizedDescription)
@@ -40,28 +45,18 @@ class AuthViewModel: ObservableObject {
             
             print("User created successfully:", user.uid)
             self.userSession = user
-            
-            // Optional: save additional profile info in Firestore
-            let data: [String: Any] = [
-                "email": email,
-                "username": username,
-                "friends": []
-            ]
-            let username_data: [String: Any] = [
-                "uid": user.uid
-            ]
-            Firestore.firestore().collection("users").document(user.uid).setData(data) { err in
-                if let err = err {
-                    print("Error saving profile:", err.localizedDescription)
-                } else {
-                    print("Profile saved to Firestore")
-                }
-            }
-            Firestore.firestore().collection("usernames").document(username).setData(username_data) { err in
-                if let err = err {
-                    print("Error saving profile:", err.localizedDescription)
-                } else {
-                    print("Username saved to Firestore")
+
+            Task {
+                do {
+                    let profile = try await UserProfileStore.saveSignedInUserProfile(
+                        userID: user.uid,
+                        email: normalizedEmail,
+                        username: normalizedUsername,
+                        displayName: normalizedUsername
+                    )
+                    print("Profile saved to Firestore for:", profile.username)
+                } catch {
+                    print("Error saving profile:", error.localizedDescription)
                 }
             }
         }

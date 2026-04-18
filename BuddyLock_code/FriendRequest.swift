@@ -14,8 +14,24 @@ import FirebaseAuth
 struct FriendRequest: Identifiable, Codable {
     @DocumentID var id: String?
     let fromUserID: String
+    let fromUsername: String?
+    let fromDisplayName: String?
     let status: String   // "pending"
     let timestamp: Date
+
+    var resolvedName: String {
+        let displayName = fromDisplayName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if !displayName.isEmpty {
+            return displayName
+        }
+
+        let username = fromUsername?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if !username.isEmpty {
+            return username
+        }
+
+        return fromUserID
+    }
 }
 
 
@@ -70,65 +86,73 @@ final class FriendRequestService: ObservableObject {
 
     // MARK: - Send friend request
     func sendRequest(targetID: String) async throws {
-        print("gonna crash out")
-        if let user = Auth.auth().currentUser {
-            print("check in. fr rules, Current UID:", user.uid)
-        } else {
-            print("Not signed in")
-        }
-        guard targetID != currentUserID else {
-            throw NSError(domain: "FriendRequest", code: 400,
-                          userInfo: [NSLocalizedDescriptionKey: "Cannot friend yourself"])
-        }
-        
-        let targetSnapshot = try await db.collection("usernames")
-            .document(targetID)
-            .getDocument()
-        
-
-        guard let targetUID = targetSnapshot.data()?["uid"] as? String else {
-            throw NSError(domain: "FriendRequest", code: 404, userInfo: [NSLocalizedDescriptionKey: "User not found"])
+        let normalizedTargetUsername = UserProfileStore.normalizeUsername(targetID)
+        guard !normalizedTargetUsername.isEmpty else {
+            throw NSError(
+                domain: "FriendRequest",
+                code: 400,
+                userInfo: [NSLocalizedDescriptionKey: "Enter a username first."]
+            )
         }
 
-        print("check 1. r they alr buddies")
-        // 1️⃣ Check if already friends
+        guard let senderProfile = try await UserProfileStore.fetchProfile(userID: currentUserID) else {
+            throw NSError(
+                domain: "FriendRequest",
+                code: 401,
+                userInfo: [NSLocalizedDescriptionKey: "Your profile is not ready yet. Try again in a moment."]
+            )
+        }
+
+        guard let targetProfile = try await UserProfileStore.fetchProfile(username: normalizedTargetUsername) else {
+            throw NSError(
+                domain: "FriendRequest",
+                code: 404,
+                userInfo: [NSLocalizedDescriptionKey: "User not found."]
+            )
+        }
+
+        guard targetProfile.userID != currentUserID else {
+            throw NSError(
+                domain: "FriendRequest",
+                code: 400,
+                userInfo: [NSLocalizedDescriptionKey: "Cannot friend yourself."]
+            )
+        }
+
         let friendDoc = try await db.collection("users")
             .document(currentUserID)
             .collection("friends")
-            .document(targetUID)
+            .document(targetProfile.userID)
             .getDocument()
         if friendDoc.exists {
-            throw NSError(domain: "FriendRequest", code: 400,
-                          userInfo: [NSLocalizedDescriptionKey: "You are already friends"])
+            throw NSError(
+                domain: "FriendRequest",
+                code: 400,
+                userInfo: [NSLocalizedDescriptionKey: "You are already friends."]
+            )
         }
 
-        print("check 2. is req alr sente")
-        // 2️⃣ Check if request already sent
         let requestDoc = try await db.collection("users")
-            .document(targetUID)
+            .document(targetProfile.userID)
             .collection("friendRequests")
             .document(currentUserID)
             .getDocument()
         if requestDoc.exists {
-            throw NSError(domain: "FriendRequest", code: 400,
-                          userInfo: [NSLocalizedDescriptionKey: "Friend request already sent"])
-        }
-        
-        print("hi ???")
-
-        if let user = Auth.auth().currentUser {
-            print("check in. fr rules, Current UID:", user.uid)
-        } else {
-            print("Not signed in")
+            throw NSError(
+                domain: "FriendRequest",
+                code: 400,
+                userInfo: [NSLocalizedDescriptionKey: "Friend request already sent."]
+            )
         }
 
-        // ✅ Write friend request
         try await db.collection("users")
-            .document(targetUID)
+            .document(targetProfile.userID)
             .collection("friendRequests")
             .document(currentUserID)
             .setData([
                 "fromUserID": currentUserID,
+                "fromUsername": senderProfile.username,
+                "fromDisplayName": senderProfile.displayName,
                 "status": "pending",
                 "timestamp": Timestamp()
             ])
@@ -139,7 +163,11 @@ final class FriendRequestService: ObservableObject {
 
     // MARK: - Accept request
     func accept(_ request: FriendRequest) async throws {
-        guard let senderID = request.id else { return }
+        let senderID = request.fromUserID
+        guard !senderID.isEmpty else { return }
+
+        let currentUserProfile = try await UserProfileStore.fetchProfile(userID: currentUserID)
+        let senderProfile = try await UserProfileStore.fetchProfile(userID: senderID)
 
         let batch = db.batch()
 
@@ -156,15 +184,13 @@ final class FriendRequestService: ObservableObject {
         let requestRef = db.collection("users")
             .document(currentUserID)
             .collection("friendRequests")
-            .document(senderID)
+            .document(request.id ?? senderID)
+
+        batch.setData(friendPayload(from: senderProfile, fallbackName: request.resolvedName), forDocument: myFriendsRef)
 
         batch.setData([
             "since": Timestamp()
-        ], forDocument: myFriendsRef)
-
-        batch.setData([
-            "since": Timestamp()
-        ], forDocument: senderFriendsRef)
+        ].merging(friendPayload(from: currentUserProfile), uniquingKeysWith: { _, new in new }), forDocument: senderFriendsRef)
 
         batch.deleteDocument(requestRef)
 
@@ -173,8 +199,8 @@ final class FriendRequestService: ObservableObject {
         buddyService.addBuddy(
             LocalBuddy(
                 remoteID: senderID,
-                buddyUserID: senderID,
-                displayName: request.fromUserID
+                buddyUserID: senderProfile?.username ?? request.fromUsername ?? senderID,
+                displayName: senderProfile?.displayName ?? request.resolvedName
             )
         )
     }
@@ -182,7 +208,8 @@ final class FriendRequestService: ObservableObject {
 
     // MARK: - Reject request
     func reject(_ request: FriendRequest) async throws {
-        guard let senderID = request.id else { return }
+        let senderID = request.id ?? request.fromUserID
+        guard !senderID.isEmpty else { return }
 
         try await db.collection("users")
             .document(currentUserID)
@@ -191,4 +218,18 @@ final class FriendRequestService: ObservableObject {
             .delete()
     }
 
+    private func friendPayload(from profile: RemoteUserProfile?, fallbackName: String? = nil) -> [String: Any] {
+        var payload: [String: Any] = [
+            "since": Timestamp()
+        ]
+
+        if let profile {
+            payload["displayName"] = profile.displayName
+            payload["username"] = profile.username
+        } else if let fallbackName, !fallbackName.isEmpty {
+            payload["displayName"] = fallbackName
+        }
+
+        return payload
+    }
 }

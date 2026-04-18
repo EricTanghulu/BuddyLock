@@ -2,6 +2,11 @@ import FirebaseAuth
 import FirebaseFirestore
 import Foundation
 
+private struct RemoteBuddyRecord {
+    let username: String?
+    let displayName: String?
+}
+
 @MainActor
 final class LocalBuddyService: ObservableObject {
     @Published private(set) var buddies: [LocalBuddy] = []
@@ -93,7 +98,7 @@ final class LocalBuddyService: ObservableObject {
             referenceID: buddy.id.uuidString,
             label: buddy.resolvedDisplayName,
             recipientBuddyIDs: [buddy.id],
-            recipientUserIDs: [buddy.buddyUserID],
+            recipientUserIDs: [recipientUserID(for: buddy)],
             defaultApprovalRule: BuddyApprovalRule(kind: .anyOne),
             allowsRuleOverride: false
         )
@@ -108,7 +113,7 @@ final class LocalBuddyService: ObservableObject {
             referenceID: category.id.uuidString,
             label: category.name,
             recipientBuddyIDs: categoryBuddies.map(\.id),
-            recipientUserIDs: categoryBuddies.map(\.buddyUserID),
+            recipientUserIDs: categoryBuddies.map { recipientUserID(for: $0) },
             defaultApprovalRule: BuddyApprovalRule(
                 kind: categoryBuddies.count == 1 ? .anyOne : .majority
             ),
@@ -127,7 +132,7 @@ final class LocalBuddyService: ObservableObject {
             referenceID: group.id.uuidString,
             label: group.name,
             recipientBuddyIDs: memberBuddies.map(\.id),
-            recipientUserIDs: memberBuddies.map(\.buddyUserID),
+            recipientUserIDs: memberBuddies.map { recipientUserID(for: $0) },
             defaultApprovalRule: group.defaultApprovalRule,
             allowsRuleOverride: group.allowRequesterOverride
         )
@@ -142,7 +147,7 @@ final class LocalBuddyService: ObservableObject {
             referenceID: "everyone",
             label: "Everyone",
             recipientBuddyIDs: recipients.map(\.id),
-            recipientUserIDs: recipients.map(\.buddyUserID),
+            recipientUserIDs: recipients.map { recipientUserID(for: $0) },
             defaultApprovalRule: BuddyApprovalRule(
                 kind: recipients.count == 1 ? .anyOne : .majority
             ),
@@ -168,7 +173,7 @@ final class LocalBuddyService: ObservableObject {
             referenceID: "selected",
             label: label,
             recipientBuddyIDs: selected.map(\.id),
-            recipientUserIDs: selected.map(\.buddyUserID),
+            recipientUserIDs: selected.map { recipientUserID(for: $0) },
             defaultApprovalRule: BuddyApprovalRule(
                 kind: selected.count == 1 ? .anyOne : .majority
             ),
@@ -338,19 +343,21 @@ final class LocalBuddyService: ObservableObject {
 
                 let documents = snapshot?.documents ?? []
                 let remoteFriendIDs = Set(documents.map(\.documentID))
-                let namesByRemoteID = documents.reduce(into: [String: String]()) { partialResult, document in
-                    if let displayName = document.data()["displayName"] as? String {
-                        partialResult[document.documentID] = displayName
-                    }
+                let profilesByRemoteID = documents.reduce(into: [String: RemoteBuddyRecord]()) { partialResult, document in
+                    let data = document.data()
+                    partialResult[document.documentID] = RemoteBuddyRecord(
+                        username: UserProfileStore.readUsername(from: data),
+                        displayName: UserProfileStore.normalizeDisplayName(data["displayName"] as? String)
+                    )
                 }
 
-                syncRemoteFriends(remoteFriendIDs, namesByRemoteID: namesByRemoteID)
+                syncRemoteFriends(remoteFriendIDs, profilesByRemoteID: profilesByRemoteID)
             }
     }
 
     private func syncRemoteFriends(
         _ remoteFriendIDs: Set<String>,
-        namesByRemoteID: [String: String]
+        profilesByRemoteID: [String: RemoteBuddyRecord]
     ) {
         buddies.removeAll { buddy in
             guard let remoteID = buddy.remoteID else { return false }
@@ -364,15 +371,21 @@ final class LocalBuddyService: ObservableObject {
 
             if let existingIndex {
                 buddies[existingIndex].remoteID = remoteID
-                if let remoteName = namesByRemoteID[remoteID],
-                   (buddies[existingIndex].displayName?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true) {
-                    buddies[existingIndex].displayName = remoteName
+                if let remoteRecord = profilesByRemoteID[remoteID] {
+                    if let remoteName = remoteRecord.displayName,
+                       (buddies[existingIndex].displayName?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true) {
+                        buddies[existingIndex].displayName = remoteName
+                    }
+                    if let username = remoteRecord.username, !username.isEmpty {
+                        buddies[existingIndex].buddyUserID = username
+                    }
                 }
             } else {
+                let remoteRecord = profilesByRemoteID[remoteID]
                 let buddy = LocalBuddy(
                     remoteID: remoteID,
-                    buddyUserID: remoteID,
-                    displayName: namesByRemoteID[remoteID]
+                    buddyUserID: remoteRecord?.username ?? remoteID,
+                    displayName: remoteRecord?.displayName
                 )
                 buddies.append(buddy)
             }
@@ -445,6 +458,10 @@ final class LocalBuddyService: ObservableObject {
             return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
         }
         groups.sort { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+    }
+
+    private func recipientUserID(for buddy: LocalBuddy) -> String {
+        buddy.remoteID ?? buddy.buddyUserID
     }
 
     private func load() {
