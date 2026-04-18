@@ -5,14 +5,21 @@ import FirebaseFirestore
 
 class AuthViewModel: ObservableObject {
     @Published var userSession: FirebaseAuth.User?
+    private var authStateListener: AuthStateDidChangeListenerHandle?
 
     init() {
         self.userSession = Auth.auth().currentUser
         listenForChanges()
     }
 
+    deinit {
+        if let authStateListener {
+            Auth.auth().removeStateDidChangeListener(authStateListener)
+        }
+    }
+
     func listenForChanges() {
-        Auth.auth().addStateDidChangeListener { _, user in
+        authStateListener = Auth.auth().addStateDidChangeListener { _, user in
             self.userSession = user
         }
     }

@@ -13,11 +13,12 @@ import FamilyControls
 
 /// Lightweight model the UI can use to render the current focus state
 /// without needing to understand all of the Screen Time details.
-struct FocusSessionState: Equatable {
-    enum Phase: Equatable {
+struct FocusSessionState: Equatable, Codable {
+    enum Phase: Equatable, Codable {
         case idle           // no session running
         case warmUp         // countdown before the real session starts
         case running        // active focus
+        case paused         // temporarily paused
         case completed      // finished normally
         case cancelled      // user ended early
     }
@@ -34,6 +35,9 @@ struct FocusSessionState: Equatable {
     /// When a warm-up (if any) will end.
     var warmUpEndsAt: Date? = nil
 
+    /// Frozen remaining time while paused.
+    var pausedRemainingSeconds: Int? = nil
+
     /// Convenience flag the UI uses everywhere.
     var isActive: Bool {
         switch phase {
@@ -46,9 +50,16 @@ struct FocusSessionState: Equatable {
 
     /// Best-effort remaining seconds until the *focus* period ends.
     var secondsRemaining: Int? {
-        guard let endsAt, isActive else { return nil }
-        let remaining = Int(endsAt.timeIntervalSinceNow.rounded())
-        return max(remaining, 0)
+        switch phase {
+        case .paused:
+            return pausedRemainingSeconds
+        case .warmUp, .running:
+            guard let endsAt else { return nil }
+            let remaining = Int(endsAt.timeIntervalSinceNow.rounded())
+            return max(remaining, 0)
+        case .idle, .completed, .cancelled:
+            return nil
+        }
     }
 
     static var idle: FocusSessionState { .init() }
@@ -58,6 +69,22 @@ struct FocusSessionState: Equatable {
 
 @MainActor
 final class ScreenTimeManager: ObservableObject {
+    private struct PersistedSessionState: Codable {
+        enum Mode: String, Codable {
+            case none
+            case focusRunning
+            case focusPaused
+        }
+
+        var mode: Mode
+        var focusState: FocusSessionState
+        var focusPauseEndsAt: Date?
+        #if canImport(FamilyControls)
+        var focusSelectionOverride: FamilyActivitySelection?
+        #endif
+    }
+
+    private static let persistedSessionKey = "BuddyLock.persistedSessionState"
 
     // MARK: High-level modes
 
@@ -76,6 +103,9 @@ final class ScreenTimeManager: ObservableObject {
 
     /// Whether the user has granted Screen Time (FamilyControls) authorization.
     @Published var isAuthorized: Bool = false
+
+    /// Whether we've completed at least one real authorization check this launch.
+    @Published var hasResolvedAuthorizationStatus: Bool = false
 
     /// Whether *any* shields are currently applied.
     @Published var isShieldActive: Bool = false
@@ -96,6 +126,18 @@ final class ScreenTimeManager: ObservableObject {
 
     /// Timestamp for when the current "essentials only" block ends, if any.
     @Published private(set) var essentialsModeEndsAt: Date? = nil
+
+    /// Timestamp for when a temporary exception ends, if any.
+    @Published private(set) var exceptionEndsAt: Date? = nil
+
+    /// Timestamp for when a paused focus window auto-ends, if any.
+    @Published private(set) var focusPauseEndsAt: Date? = nil
+
+    #if canImport(FamilyControls)
+    /// Optional focus-specific selection used when a preset wants its own
+    /// blocked apps instead of the shared default selection.
+    @Published private(set) var focusSelectionOverride: FamilyActivitySelection? = nil
+    #endif
 
     #if canImport(FamilyControls)
     /// Main selection for *blocked* content. This is what the FamilyActivityPicker
@@ -122,6 +164,9 @@ final class ScreenTimeManager: ObservableObject {
     /// Task that manages a running focus session (handles warm-up and end).
     private var focusTask: Task<Void, Never>?
 
+    /// Task that manages an active focus pause.
+    private var pausedFocusTask: Task<Void, Never>?
+
     /// Task for a panic-button short-term block.
     private var panicTask: Task<Void, Never>?
 
@@ -141,6 +186,7 @@ final class ScreenTimeManager: ObservableObject {
 
     init() {
         startTicker()
+        restorePersistedSessionIfNeeded()
         Task { [weak self] in
             await self?.refreshAuthorizationState()
         }
@@ -149,6 +195,7 @@ final class ScreenTimeManager: ObservableObject {
     deinit {
         tickerTask?.cancel()
         focusTask?.cancel()
+        pausedFocusTask?.cancel()
         panicTask?.cancel()
         essentialsTask?.cancel()
         exceptionTask?.cancel()
@@ -169,6 +216,7 @@ final class ScreenTimeManager: ObservableObject {
         #else
         // On platforms without FamilyControls this is a no-op so previews still work.
         isAuthorized = false
+        hasResolvedAuthorizationStatus = true
         #endif
     }
 
@@ -190,10 +238,12 @@ final class ScreenTimeManager: ObservableObject {
             print("Status:", AuthorizationCenter.shared.authorizationStatus)
             let status = AuthorizationCenter.shared.authorizationStatus
             self.isAuthorized = (status == .approved)
+            self.hasResolvedAuthorizationStatus = true
         }
         print("isAuthorized is (p2)...", isAuthorized)
         #else
         isAuthorized = false
+        hasResolvedAuthorizationStatus = true
         #endif
     }
 
@@ -224,9 +274,12 @@ final class ScreenTimeManager: ObservableObject {
 
     /// Starts a focus session of the given length (in minutes), with an
     /// optional warm-up period in seconds.
-    func startFocusSession(minutes: Int, warmUpSeconds: Int) {
+    func startFocusSession(minutes: Int, warmUpSeconds: Int, selectionOverride: FamilyActivitySelection? = nil) {
         // Cancel any existing focus or panic / essentials timers.
         focusTask?.cancel()
+        pausedFocusTask?.cancel()
+        pausedFocusTask = nil
+        focusPauseEndsAt = nil
 
         let totalSeconds = max(minutes, 1) * 60
         let warmUp = max(warmUpSeconds, 0)
@@ -235,16 +288,22 @@ final class ScreenTimeManager: ObservableObject {
         let warmUpEndsAt = warmUp > 0 ? now.addingTimeInterval(TimeInterval(warmUp)) : nil
         let focusEndsAt = now.addingTimeInterval(TimeInterval(warmUp + totalSeconds))
 
+        #if canImport(FamilyControls)
+        focusSelectionOverride = selectionOverride
+        #endif
+
         focusState = FocusSessionState(
             phase: warmUp > 0 ? .warmUp : .running,
             label: nil,
             startedAt: warmUp > 0 ? nil : now,
             endsAt: focusEndsAt,
-            warmUpEndsAt: warmUpEndsAt
+            warmUpEndsAt: warmUpEndsAt,
+            pausedRemainingSeconds: nil
         )
 
         activeMode = .focus
         applyShield() // enforce blocking for focus
+        persistCurrentSession()
 
         focusTask = Task { [weak self] in
             guard let self else { return }
@@ -257,6 +316,7 @@ final class ScreenTimeManager: ObservableObject {
                 await MainActor.run {
                     self.focusState.startedAt = Date()
                     self.focusState.phase = .running
+                    self.persistCurrentSession()
                 }
             }
 
@@ -274,10 +334,20 @@ final class ScreenTimeManager: ObservableObject {
     func endFocusSession(completed: Bool) async {
         focusTask?.cancel()
         focusTask = nil
+        pausedFocusTask?.cancel()
+        pausedFocusTask = nil
+        focusPauseEndsAt = nil
+        #if canImport(FamilyControls)
+        focusSelectionOverride = nil
+        #endif
 
         await MainActor.run {
             focusState.phase = completed ? .completed : .cancelled
+            focusState.pausedRemainingSeconds = nil
         }
+
+        exceptionTask?.cancel()
+        exceptionEndsAt = nil
 
         // After a focus session ends, we drop back to baseline if it is
         // enabled, otherwise to idle.
@@ -287,6 +357,61 @@ final class ScreenTimeManager: ObservableObject {
         } else {
             activeMode = .idle
             clearShield()
+        }
+        clearPersistedSession()
+    }
+
+    func pauseFocusSession(for minutes: Int) {
+        guard focusState.phase == .running || focusState.phase == .warmUp else { return }
+
+        focusTask?.cancel()
+        focusTask = nil
+
+        let remaining = max(focusState.secondsRemaining ?? 0, 1)
+        let pauseMinutes = max(minutes, 1)
+
+        focusState.phase = .paused
+        focusState.pausedRemainingSeconds = remaining
+        focusState.endsAt = nil
+        focusState.warmUpEndsAt = nil
+
+        activeMode = .idle
+        clearShield()
+
+        focusPauseEndsAt = Date().addingTimeInterval(TimeInterval(pauseMinutes * 60))
+        persistCurrentSession()
+
+        pausedFocusTask?.cancel()
+        pausedFocusTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: UInt64(pauseMinutes * 60) * 1_000_000_000)
+            if Task.isCancelled { return }
+            await self?.resumeFocusSession()
+        }
+    }
+
+    func resumeFocusSession() async {
+        guard focusState.phase == .paused else { return }
+
+        pausedFocusTask?.cancel()
+        pausedFocusTask = nil
+        focusPauseEndsAt = nil
+
+        let remaining = max(focusState.pausedRemainingSeconds ?? 0, 1)
+        let end = Date().addingTimeInterval(TimeInterval(remaining))
+
+        focusState.phase = .running
+        focusState.startedAt = Date()
+        focusState.endsAt = end
+        focusState.pausedRemainingSeconds = nil
+
+        activeMode = .focus
+        applyShield()
+        persistCurrentSession()
+
+        focusTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: UInt64(remaining) * 1_000_000_000)
+            if Task.isCancelled { return }
+            await self?.endFocusSession(completed: true)
         }
     }
 
@@ -384,26 +509,28 @@ final class ScreenTimeManager: ObservableObject {
         let store = ManagedSettingsStore()
 
         // Apps (direct set; nil removes any app shields)
-        if selection.applicationTokens.isEmpty {
+        let activeSelection = effectiveShieldSelection
+
+        if activeSelection.applicationTokens.isEmpty {
             store.shield.applications = nil
             lastAppliedApplicationTokens = []
         } else {
-            store.shield.applications = selection.applicationTokens
-            lastAppliedApplicationTokens = selection.applicationTokens
+            store.shield.applications = activeSelection.applicationTokens
+            lastAppliedApplicationTokens = activeSelection.applicationTokens
         }
 
         // App/activity categories
-        if selection.categoryTokens.isEmpty {
+        if activeSelection.categoryTokens.isEmpty {
             store.shield.applicationCategories = nil
         } else {
-            store.shield.applicationCategories = .specific(selection.categoryTokens)
+            store.shield.applicationCategories = .specific(activeSelection.categoryTokens)
         }
 
         // Web domains
-        if selection.webDomainTokens.isEmpty {
+        if activeSelection.webDomainTokens.isEmpty {
             store.shield.webDomains = nil
         } else {
-            store.shield.webDomains = selection.webDomainTokens
+            store.shield.webDomains = activeSelection.webDomainTokens
         }
 
         isShieldActive = true
@@ -412,6 +539,15 @@ final class ScreenTimeManager: ObservableObject {
         isShieldActive = true
         #endif
     }
+
+    #if canImport(FamilyControls)
+    private var effectiveShieldSelection: FamilyActivitySelection {
+        if activeMode == .focus, let focusSelectionOverride {
+            return focusSelectionOverride
+        }
+        return selection
+    }
+    #endif
 
     /// Clears all shields.
     func clearShield() {
@@ -433,6 +569,7 @@ final class ScreenTimeManager: ObservableObject {
         let clamped = max(1, minutes)
 
         exceptionTask?.cancel()
+        exceptionEndsAt = Date().addingTimeInterval(TimeInterval(clamped * 60))
         exceptionTask = Task { [weak self] in
             guard let self else { return }
 
@@ -444,6 +581,7 @@ final class ScreenTimeManager: ObservableObject {
             if Task.isCancelled { return }
 
             await MainActor.run {
+                self.exceptionEndsAt = nil
                 // Re-evaluate which mode we should be in and re-apply.
                 if self.activeMode != .idle {
                     self.applyShield()
@@ -462,6 +600,7 @@ final class ScreenTimeManager: ObservableObject {
         let clamped = max(1, minutes)
 
         exceptionTask?.cancel()
+        exceptionEndsAt = Date().addingTimeInterval(TimeInterval(clamped * 60))
         exceptionTask = Task { [weak self] in
             guard let self else { return }
 
@@ -484,6 +623,7 @@ final class ScreenTimeManager: ObservableObject {
             if Task.isCancelled { return }
 
             await MainActor.run {
+                self.exceptionEndsAt = nil
                 // Restore full shields according to the current mode.
                 if self.activeMode != .idle {
                     self.applyShield()
@@ -511,9 +651,136 @@ final class ScreenTimeManager: ObservableObject {
                         // Just reassign to trigger observers.
                         self.focusState = self.focusState
                     }
+
+                    if self.exceptionEndsAt != nil {
+                        self.exceptionEndsAt = self.exceptionEndsAt
+                    }
+
+                    if self.focusPauseEndsAt != nil {
+                        self.focusPauseEndsAt = self.focusPauseEndsAt
+                    }
                 }
             }
         }
+    }
+
+    private func restorePersistedSessionIfNeeded() {
+        guard
+            let data = UserDefaults.standard.data(forKey: Self.persistedSessionKey),
+            let persisted = try? JSONDecoder().decode(PersistedSessionState.self, from: data)
+        else {
+            return
+        }
+
+        switch persisted.mode {
+        case .none:
+            clearPersistedSession()
+        case .focusRunning:
+            restoreRunningFocusSession(from: persisted)
+        case .focusPaused:
+            restorePausedFocusSession(from: persisted)
+        }
+    }
+
+    private func restoreRunningFocusSession(from persisted: PersistedSessionState) {
+        guard let end = persisted.focusState.endsAt else {
+            clearPersistedSession()
+            return
+        }
+
+        let remaining = Int(end.timeIntervalSinceNow.rounded())
+        guard remaining > 0 else {
+            clearPersistedSession()
+            clearShield()
+            activeMode = isBaselineEnabled ? .baseline : .idle
+            return
+        }
+
+        focusState = persisted.focusState
+        activeMode = .focus
+        #if canImport(FamilyControls)
+        focusSelectionOverride = persisted.focusSelectionOverride
+        #endif
+        applyShield()
+
+        focusTask?.cancel()
+        focusTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: UInt64(remaining) * 1_000_000_000)
+            if Task.isCancelled { return }
+            await self?.endFocusSession(completed: true)
+        }
+    }
+
+    private func restorePausedFocusSession(from persisted: PersistedSessionState) {
+        guard let pauseEnd = persisted.focusPauseEndsAt,
+              let remainingFocus = persisted.focusState.pausedRemainingSeconds
+        else {
+            clearPersistedSession()
+            return
+        }
+
+        if pauseEnd <= Date() {
+            focusState = persisted.focusState
+            #if canImport(FamilyControls)
+            focusSelectionOverride = persisted.focusSelectionOverride
+            #endif
+            Task { [weak self] in
+                await self?.resumeFocusSession()
+            }
+            return
+        }
+
+        focusState = persisted.focusState
+        focusState.pausedRemainingSeconds = remainingFocus
+        activeMode = .idle
+        #if canImport(FamilyControls)
+        focusSelectionOverride = persisted.focusSelectionOverride
+        #endif
+        focusPauseEndsAt = pauseEnd
+        clearShield()
+
+        pausedFocusTask?.cancel()
+        let pauseRemaining = max(Int(pauseEnd.timeIntervalSinceNow.rounded()), 1)
+        pausedFocusTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: UInt64(pauseRemaining) * 1_000_000_000)
+            if Task.isCancelled { return }
+            await self?.resumeFocusSession()
+        }
+    }
+
+    private func persistCurrentSession() {
+        let mode: PersistedSessionState.Mode
+        switch focusState.phase {
+        case .warmUp, .running:
+            mode = .focusRunning
+        case .paused:
+            mode = .focusPaused
+        case .idle, .completed, .cancelled:
+            clearPersistedSession()
+            return
+        }
+
+        #if canImport(FamilyControls)
+        let persisted = PersistedSessionState(
+            mode: mode,
+            focusState: focusState,
+            focusPauseEndsAt: focusPauseEndsAt,
+            focusSelectionOverride: focusSelectionOverride
+        )
+        #else
+        let persisted = PersistedSessionState(
+            mode: mode,
+            focusState: focusState,
+            focusPauseEndsAt: focusPauseEndsAt
+        )
+        #endif
+
+        guard let data = try? JSONEncoder().encode(persisted) else { return }
+        UserDefaults.standard.set(data, forKey: Self.persistedSessionKey)
+    }
+
+    private func clearPersistedSession() {
+        UserDefaults.standard.removeObject(forKey: Self.persistedSessionKey)
     }
 }
 
@@ -530,6 +797,10 @@ extension ScreenTimeManager {
     }
 
     var selectionSummary: String {
+        selectionSummary(for: selection)
+    }
+
+    func selectionSummary(for selection: FamilyActivitySelection) -> String {
         var parts: [String] = []
         if !selection.applicationTokens.isEmpty { parts.append("\(selection.applicationTokens.count) app(s)") }
         if !selection.categoryTokens.isEmpty { parts.append("\(selection.categoryTokens.count) category token(s)") }

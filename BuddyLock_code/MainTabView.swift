@@ -48,10 +48,9 @@ struct MainTabView: View {
                 // 1) HOME TAB
                 NavigationStack {
                     HomeView(
-                        challengesService: challengesService,
-                        leaderboardEntries: [],
-                        socialPosts: [],
-                        stories: []
+                        buddyService: buddyService,
+                        friendRequestService: friendRequestService,
+                        requestService: requestService
                     )
                 }
                 .tabItem {
@@ -108,7 +107,7 @@ struct MainTabView: View {
                 }
                 .tag(4)
             }
-            .onChange(of: selectedTab) { newValue in
+            .onChange(of: selectedTab) { _, newValue in
                 if newValue == 2 {
                     // User tapped the plus tab → show our custom pop-up
                     withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
@@ -164,12 +163,43 @@ struct MainTabView: View {
                 .environmentObject(screenTime)
             }
         }
+        .fullScreenCover(
+            isPresented: Binding(
+                get: {
+                    screenTime.hasResolvedAuthorizationStatus &&
+                    !screenTime.isAuthorized
+                },
+                set: { _ in }
+            )
+        ) {
+            ScreenTimeRequiredView()
+                .environmentObject(screenTime)
+        }
+        .fullScreenCover(
+            isPresented: Binding(
+                get: {
+                    screenTime.isAuthorized &&
+                    screenTime.focusState.isActive &&
+                    screenTime.exceptionEndsAt == nil
+                },
+                set: { _ in }
+            )
+        ) {
+            FocusSessionLockedView()
+                .environmentObject(screenTime)
+        }
         .onAppear {
+            Task {
+                await screenTime.refreshAuthorizationState()
+            }
             consumePendingShieldUnlockRequest()
             consumeApprovedOutgoingRequests()
         }
-        .onChange(of: scenePhase) { newPhase in
+        .onChange(of: scenePhase) { _, newPhase in
             if newPhase == .active {
+                Task {
+                    await screenTime.refreshAuthorizationState()
+                }
                 consumePendingShieldUnlockRequest()
                 consumeApprovedOutgoingRequests()
             }
@@ -232,6 +262,184 @@ private struct ChallengeCreateContainer: View {
             }
         }
         .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+private struct ScreenTimeRequiredView: View {
+    @EnvironmentObject var screenTime: ScreenTimeManager
+    @State private var isRequestingAuthorization = false
+
+    var body: some View {
+        NavigationStack {
+            VStack(alignment: .leading, spacing: 24) {
+                Spacer()
+
+                VStack(alignment: .leading, spacing: 16) {
+                    Image(systemName: "hand.raised.app.fill")
+                        .font(.system(size: 34, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .frame(width: 72, height: 72)
+                        .background(Color.accentColor, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+
+                    Text("Turn on Screen Time")
+                        .font(.largeTitle.bold())
+
+                    Text("BuddyLock needs Screen Time access before it can block distracting apps, start focus sessions, or make buddy unlocks work the right way.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+
+                VStack(alignment: .leading, spacing: 14) {
+                    requirementRow(
+                        title: "Block apps when you focus",
+                        detail: "Your sessions only work if BuddyLock can actually shield the apps you picked."
+                    )
+
+                    requirementRow(
+                        title: "Use panic block and longer locks",
+                        detail: "Quick blocks and longer lock-ins both depend on the same permission."
+                    )
+
+                    requirementRow(
+                        title: "Make buddy unlocks mean something",
+                        detail: "Unlock approvals only matter if Screen Time is active first."
+                    )
+                }
+                .padding()
+                .background(Color(.systemGray6), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+
+                VStack(alignment: .leading, spacing: 10) {
+                    Button {
+                        requestAuthorization()
+                    } label: {
+                        HStack {
+                            if isRequestingAuthorization {
+                                ProgressView()
+                                    .progressViewStyle(.circular)
+                                    .tint(.white)
+                            } else {
+                                Image(systemName: "hand.raised.fill")
+                            }
+
+                            Text(isRequestingAuthorization ? "Checking access..." : "Turn on Screen Time")
+                            Spacer()
+                        }
+                        .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(isRequestingAuthorization)
+
+                    Text("You’ll come right back into BuddyLock as soon as access is enabled.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer()
+            }
+            .padding(24)
+            .navigationBarBackButtonHidden(true)
+        }
+        .interactiveDismissDisabled()
+    }
+
+    private func requestAuthorization() {
+        guard !isRequestingAuthorization else { return }
+
+        isRequestingAuthorization = true
+        Task {
+            await screenTime.requestAuthorization()
+            await MainActor.run {
+                isRequestingAuthorization = false
+            }
+        }
+    }
+
+    private func requirementRow(title: String, detail: String) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: "checkmark.circle.fill")
+                .foregroundStyle(.green)
+                .padding(.top, 2)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                Text(detail)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+}
+
+private struct FocusSessionLockedView: View {
+    @EnvironmentObject var screenTime: ScreenTimeManager
+    @AppStorage("BuddyLock.loseFocusMinutes")
+    private var loseFocusMinutes: Int = 5
+    @State private var showingLoseFocusConfirmation = false
+    @State private var showingEndFocusConfirmation = false
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 28) {
+                Spacer()
+
+                VStack(spacing: 14) {
+                    Text(screenTime.focusState.phase == .warmUp ? "Get ready" : "Focus mode")
+                        .font(.largeTitle.bold())
+
+                    Text(timerText)
+                        .font(.system(size: 54, weight: .bold, design: .rounded))
+                }
+
+                VStack(spacing: 12) {
+                    Button {
+                        showingLoseFocusConfirmation = true
+                    } label: {
+                        Text("Lose focus")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+
+                    Button(role: .destructive) {
+                        showingEndFocusConfirmation = true
+                    } label: {
+                        Text("End focus")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                }
+
+                Spacer()
+            }
+            .padding(24)
+            .navigationBarBackButtonHidden(true)
+        }
+        .interactiveDismissDisabled()
+        .alert("Lose focus?", isPresented: $showingLoseFocusConfirmation) {
+            Button("Cancel", role: .cancel) {}
+            Button("Lose focus") {
+                screenTime.pauseFocusSession(for: loseFocusMinutes)
+            }
+        } message: {
+            Text("This pauses your timer and unblocks your selected apps for \(loseFocusMinutes) minute\(loseFocusMinutes == 1 ? "" : "s").")
+        }
+        .alert("End focus?", isPresented: $showingEndFocusConfirmation) {
+            Button("Cancel", role: .cancel) {}
+            Button("End focus", role: .destructive) {
+                Task {
+                    await screenTime.endFocusSession(completed: false)
+                }
+            }
+        } message: {
+            Text("This ends the focus session right now.")
+        }
+    }
+
+    private var timerText: String {
+        let seconds = screenTime.focusState.secondsRemaining ?? 0
+        let minutes = seconds / 60
+        let remainder = seconds % 60
+        return String(format: "%02d:%02d", minutes, remainder)
     }
 }
 
