@@ -22,32 +22,42 @@ struct BuddyListView: View {
     @ObservedObject var buddyService: LocalBuddyService
     @ObservedObject var friendRequests: FriendRequestService
 
-    @State private var friendUserID: String = ""
     @State private var newCategoryName: String = ""
+    @State private var addBuddyPresented = false
     @State private var createGroupPresented = false
     @State private var feedbackMessage: String?
 
     var body: some View {
         List {
-            addBuddySection
-
             if !friendRequests.incomingRequests.isEmpty {
                 pendingRequestsSection
             }
 
-            summarySection
             categoriesSection
-            groupsSection
-            buddiesSection
         }
         .navigationTitle("Buddy System")
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    createGroupPresented = true
+                Menu {
+                    Button {
+                        addBuddyPresented = true
+                    } label: {
+                        Label("Add Buddy", systemImage: "person.badge.plus")
+                    }
+
+                    Button {
+                        createGroupPresented = true
+                    } label: {
+                        Label("New Group", systemImage: "person.3.fill")
+                    }
                 } label: {
-                    Label("New Group", systemImage: "person.3.fill")
+                    Image(systemName: "plus")
                 }
+            }
+        }
+        .sheet(isPresented: $addBuddyPresented) {
+            NavigationStack {
+                AddBuddyView(friendRequests: friendRequests)
             }
         }
         .sheet(isPresented: $createGroupPresented) {
@@ -55,38 +65,19 @@ struct BuddyListView: View {
                 GroupEditorView(buddyService: buddyService)
             }
         }
-    }
-
-    private var addBuddySection: some View {
-        Section {
-            TextField("Friend's username", text: $friendUserID)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-
-            Button {
-                Task {
-                    do {
-                        try await friendRequests.sendRequest(targetID: friendUserID)
-                        friendUserID = ""
-                        feedbackMessage = "Buddy request sent."
-                    } catch {
-                        feedbackMessage = error.localizedDescription
-                    }
+        .alert("Buddy system", isPresented: Binding(
+            get: { feedbackMessage != nil },
+            set: { newValue in
+                if !newValue {
+                    feedbackMessage = nil
                 }
-            } label: {
-                Label("Send buddy request", systemImage: "paperplane.fill")
             }
-            .disabled(friendUserID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-
-            if let feedbackMessage {
-                Text(feedbackMessage)
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+        )) {
+            Button("OK", role: .cancel) {
+                feedbackMessage = nil
             }
-        } header: {
-            Text("Add Buddy")
-        } footer: {
-            Text("BuddyLock works best with people you already know. Send them your username so they can connect quickly.")
+        } message: {
+            Text(feedbackMessage ?? "")
         }
     }
 
@@ -134,42 +125,6 @@ struct BuddyListView: View {
         }
     }
 
-    private var summarySection: some View {
-        Section("Overview") {
-            summaryRow(
-                title: "Buddies",
-                value: "\(buddyService.buddies.count)",
-                note: "People who can support your focus"
-            )
-            summaryRow(
-                title: "Best Buddies",
-                value: "\(buddyService.bestBuddyCount)/\(BuddyDataConstants.maxBestBuddies)",
-                note: "Priority people for closer accountability"
-            )
-            summaryRow(
-                title: "Groups",
-                value: "\(buddyService.groups.count)",
-                note: "Private circles for approvals and challenges"
-            )
-        }
-    }
-
-    private func summaryRow(title: String, value: String, note: String) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack {
-                Text(title)
-                Spacer()
-                Text(value)
-                    .font(.headline)
-            }
-
-            Text(note)
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-        }
-        .padding(.vertical, 2)
-    }
-
     private var categoriesSection: some View {
         Section {
             ForEach(buddyService.categories) { category in
@@ -198,109 +153,80 @@ struct BuddyListView: View {
                 .disabled(newCategoryName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
         } header: {
-            Text("Categories")
+            Text("Lists")
         } footer: {
-            Text("Use categories like Best Buddies, roommates, or study partners to control visibility and unlock audiences.")
-        }
-    }
-
-    private var groupsSection: some View {
-        Section("Groups") {
-            if buddyService.groups.isEmpty {
-                Text("Create a private group for roommates, study friends, or anyone you want to challenge together.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-            } else {
-                ForEach(buddyService.groups) { group in
-                    NavigationLink {
-                        GroupDetailView(
-                            buddyService: buddyService,
-                            groupID: group.id
-                        )
-                    } label: {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(group.name)
-                                .font(.headline)
-                            Text(group.defaultApprovalRule.summary(for: group.memberIDs.count))
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    private var buddiesSection: some View {
-        Section("Your Buddies") {
-            if buddyService.buddies.isEmpty {
-                Text("No buddies yet.")
-                    .foregroundStyle(.secondary)
-            } else {
-                ForEach(buddyService.buddies) { buddy in
-                    NavigationLink {
-                        BuddyDetailView(
-                            buddyService: buddyService,
-                            buddyID: buddy.id
-                        )
-                    } label: {
-                        BuddyRow(
-                            buddy: buddy,
-                            categories: buddyService.categories(for: buddy),
-                            isBestBuddy: buddyService.isBestBuddy(buddy)
-                        )
-                    }
-                    .swipeActions(edge: .leading, allowsFullSwipe: false) {
-                        Button {
-                            _ = buddyService.setBestBuddy(!buddyService.isBestBuddy(buddy), for: buddy)
-                        } label: {
-                            Label(
-                                buddyService.isBestBuddy(buddy) ? "Unstar" : "Best Buddy",
-                                systemImage: buddyService.isBestBuddy(buddy) ? "star.slash" : "star.fill"
-                            )
-                        }
-                        .tint(.yellow)
-                    }
-                    .swipeActions {
-                        Button(role: .destructive) {
-                            buddyService.removeBuddy(buddy)
-                        } label: {
-                            Label("Remove", systemImage: "trash")
-                        }
-                    }
-                }
-            }
+            Text("This is where lists like Best Buddies or study partners live. Your actual buddies and groups stay on the main Buddies tab.")
         }
     }
 }
 
-private struct BuddyRow: View {
-    let buddy: LocalBuddy
-    let categories: [BuddyCategory]
-    let isBestBuddy: Bool
+private struct AddBuddyView: View {
+    @ObservedObject var friendRequests: FriendRequestService
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var friendUserID = ""
+    @State private var feedbackMessage: String?
+    @State private var isSending = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Text(buddy.resolvedDisplayName)
-                    .font(.headline)
-                if isBestBuddy {
-                    Image(systemName: "star.fill")
-                        .foregroundStyle(.yellow)
-                }
-                Spacer()
-                Text(buddy.visibility.preset.title)
-                    .font(.caption)
+        Form {
+            Section("Add Buddy") {
+                TextField("Friend's username", text: $friendUserID)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+
+                Text("BuddyLock works best with people you already know. Send them your username so they can connect quickly.")
+                    .font(.footnote)
                     .foregroundStyle(.secondary)
             }
 
-            if !categories.isEmpty {
-                Text(categories.map(\.name).joined(separator: " • "))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+            if let feedbackMessage {
+                Section {
+                    Text(feedbackMessage)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
             }
         }
-        .padding(.vertical, 4)
+        .navigationTitle("Add Buddy")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Cancel") {
+                    dismiss()
+                }
+            }
+
+            ToolbarItem(placement: .confirmationAction) {
+                Button(isSending ? "Sending..." : "Send") {
+                    sendRequest()
+                }
+                .disabled(isSending || friendUserID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            }
+        }
+    }
+
+    private func sendRequest() {
+        let username = friendUserID.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !username.isEmpty else { return }
+
+        isSending = true
+        feedbackMessage = nil
+
+        Task {
+            do {
+                try await friendRequests.sendRequest(targetID: username)
+                await MainActor.run {
+                    isSending = false
+                    dismiss()
+                }
+            } catch {
+                await MainActor.run {
+                    isSending = false
+                    feedbackMessage = error.localizedDescription
+                }
+            }
+        }
     }
 }
 

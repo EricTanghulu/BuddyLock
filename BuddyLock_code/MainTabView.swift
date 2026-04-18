@@ -86,7 +86,7 @@ struct MainTabView: View {
                     }
                     .tag(2)
 
-                // 4) FRIENDS TAB (moved from #2 → now #4)
+                // 4) BUDDIES TAB
                 NavigationStack {
                     FriendsHubView(
                         buddyService: buddyService,
@@ -96,7 +96,7 @@ struct MainTabView: View {
                 }
                 .tabItem {
                     Image(systemName: "person.2.fill")
-                    Text("Friends")
+                    Text("Buddies")
                 }
                 .tag(3)
 

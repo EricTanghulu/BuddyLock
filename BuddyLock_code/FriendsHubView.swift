@@ -1,13 +1,17 @@
 import SwiftUI
 
-private struct FriendsActivityItem: Identifiable {
-    let id = UUID()
-    let title: String
-    let detail: String
-    let systemImage: String
-    let tint: Color
-    let createdAt: Date
-    let destination: FriendsHubDestination?
+private enum BuddyHubItem: Identifiable {
+    case buddy(LocalBuddy)
+    case group(BuddyGroup)
+
+    var id: String {
+        switch self {
+        case .buddy(let buddy):
+            return "buddy-\(buddy.id.uuidString)"
+        case .group(let group):
+            return "group-\(group.id.uuidString)"
+        }
+    }
 }
 
 private enum FriendsHubDestination {
@@ -57,15 +61,13 @@ struct FriendsHubView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
                 pendingSection
-                updatesSection
-                peopleSection
-                groupsSection
+                circleSection
             }
             .padding(.horizontal)
             .padding(.vertical, 16)
         }
         .background(Color(.systemGroupedBackground))
-        .navigationTitle("Friends")
+        .navigationTitle("Buddies")
         .navigationBarTitleDisplayMode(.large)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -202,57 +204,27 @@ struct FriendsHubView: View {
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
     }
 
-    private var updatesSection: some View {
+    private var circleSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             sectionTitle(
-                "Latest Updates",
-                subtitle: "The most recent buddy activity, so you don’t have to dig for it."
+                "Your Circle",
+                subtitle: "People and private groups all live here, so you only have one place to browse your accountability network."
             )
 
-            if activityItems.isEmpty {
-                emptyStateCard(
-                    title: "Nothing new yet",
-                    subtitle: "Once requests and approvals start moving, the important updates will show up here."
-                )
-            } else {
-                VStack(spacing: 10) {
-                    ForEach(activityItems) { item in
-                        if let destination = item.destination {
-                            NavigationLink {
-                                destinationView(for: destination)
-                            } label: {
-                                activityRow(item, showsChevron: true)
-                            }
-                            .buttonStyle(.plain)
-                        } else {
-                            activityRow(item)
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    private var peopleSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            sectionTitle(
-                "Buddies",
-                subtitle: "The people you already know and can lean on for accountability."
-            )
-
-            if featuredBuddies.isEmpty {
+            if circleItems.isEmpty {
                 emptyStateCard(
                     title: "No buddies yet",
                     subtitle: "Use Manage in the top-right to add someone you already know."
                 )
             } else {
                 VStack(spacing: 10) {
-                    ForEach(featuredBuddies) { buddy in
-                        buddyCard(for: buddy)
-                    }
-
-                    if orderedBuddies.count > featuredBuddies.count {
-                        viewAllRow("Showing 4 of \(orderedBuddies.count) buddies")
+                    ForEach(circleItems) { item in
+                        switch item {
+                        case .buddy(let buddy):
+                            buddyCard(for: buddy)
+                        case .group(let group):
+                            groupCard(for: group)
+                        }
                     }
                 }
             }
@@ -331,32 +303,6 @@ struct FriendsHubView: View {
         .hubCardStyle()
     }
 
-    private var groupsSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            sectionTitle(
-                "Groups",
-                subtitle: "Small circles that can vote together when one person shouldn’t decide alone."
-            )
-
-            if orderedGroups.isEmpty {
-                emptyStateCard(
-                    title: "No groups yet",
-                    subtitle: "Use Manage in the top-right to create a group for roommates, classmates, or close friends."
-                )
-            } else {
-                VStack(spacing: 10) {
-                    ForEach(featuredGroups) { group in
-                        groupCard(for: group)
-                    }
-
-                    if orderedGroups.count > featuredGroups.count {
-                        viewAllRow("Showing 3 of \(orderedGroups.count) groups")
-                    }
-                }
-            }
-        }
-    }
-
     private func groupCard(for group: BuddyGroup) -> some View {
         let memberNames = Array(
             group.memberIDs
@@ -419,37 +365,6 @@ struct FriendsHubView: View {
         .hubCardStyle()
     }
 
-    private func activityRow(_ item: FriendsActivityItem, showsChevron: Bool = false) -> some View {
-        HStack(alignment: .top, spacing: 12) {
-            Image(systemName: item.systemImage)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(item.tint)
-                .frame(width: 34, height: 34)
-                .background(item.tint.opacity(0.14), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-
-            VStack(alignment: .leading, spacing: 3) {
-                Text(item.title)
-                    .font(.subheadline.weight(.semibold))
-                Text(item.detail)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Text(relativeDateString(from: item.createdAt))
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-            }
-
-            Spacer()
-
-            if showsChevron {
-                Image(systemName: "chevron.right")
-                    .font(.footnote.weight(.semibold))
-                    .foregroundStyle(.secondary.opacity(0.7))
-            }
-        }
-        .padding()
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-    }
-
     private func sectionTitle(_ title: String, subtitle: String) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(title)
@@ -499,16 +414,6 @@ struct FriendsHubView: View {
             .background(tint.opacity(0.12), in: Capsule())
     }
 
-    private func viewAllRow(_ title: String) -> some View {
-        HStack {
-            Text(title)
-                .font(.subheadline.weight(.semibold))
-            Spacer()
-        }
-        .padding()
-        .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-    }
-
     @ViewBuilder
     private func destinationView(for destination: FriendsHubDestination) -> some View {
         switch destination {
@@ -545,18 +450,16 @@ struct FriendsHubView: View {
         }
     }
 
-    private var featuredBuddies: [LocalBuddy] {
-        Array(orderedBuddies.prefix(4))
-    }
-
     private var orderedGroups: [BuddyGroup] {
         buddyService.groups.sorted {
             $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
         }
     }
 
-    private var featuredGroups: [BuddyGroup] {
-        Array(orderedGroups.prefix(3))
+    private var circleItems: [BuddyHubItem] {
+        let buddies = orderedBuddies.map(BuddyHubItem.buddy)
+        let groups = orderedGroups.map(BuddyHubItem.group)
+        return buddies + groups
     }
 
     private var pendingFriendRequestsCount: Int {
@@ -571,97 +474,6 @@ struct FriendsHubView: View {
         requestService.outgoing.filter { $0.decision == .pending }.count
     }
 
-    private var activityItems: [FriendsActivityItem] {
-        var items: [FriendsActivityItem] = []
-
-        items.append(contentsOf: friendRequestService.incomingRequests.map { request in
-            FriendsActivityItem(
-                title: "New buddy request",
-                detail: "Someone wants to connect. Accept them to turn it into an accountability link.",
-                systemImage: "person.badge.plus",
-                tint: .blue,
-                createdAt: request.timestamp,
-                destination: .manageNetwork
-            )
-        })
-
-        for request in requestService.incoming {
-            if requestService.canCurrentUserRespond(to: request) {
-                items.append(
-                    FriendsActivityItem(
-                        title: "\(request.requesterName) needs a decision",
-                        detail: "\(request.minutesRequested)m request to \(request.audienceLabel). \(request.progressSummary).",
-                        systemImage: "checkmark.seal",
-                        tint: .green,
-                        createdAt: request.createdDate,
-                        destination: .approvals
-                    )
-                )
-            } else if let response = requestService.currentUserResponse(for: request) {
-                let responseTitle = response.vote == .approved
-                    ? "You approved \(request.requesterName)"
-                    : "You denied \(request.requesterName)"
-                let responseDetail = response.vote == .approved
-                    ? "Unlocked for \(response.approvedMinutes ?? request.minutesRequested)m."
-                    : "They’ll need a different plan for now."
-
-                items.append(
-                    FriendsActivityItem(
-                        title: responseTitle,
-                        detail: responseDetail,
-                        systemImage: response.vote == .approved ? "hand.thumbsup.fill" : "xmark.shield.fill",
-                        tint: response.vote == .approved ? .green : .red,
-                        createdAt: response.createdAt,
-                        destination: .approvals
-                    )
-                )
-            }
-        }
-
-        for request in requestService.outgoing {
-            let title: String
-            let detail: String
-            let image: String
-            let tint: Color
-
-            switch request.decision {
-            case .pending:
-                title = "Waiting on \(request.audienceLabel)"
-                detail = "\(request.progressSummary). \(request.minutesRequested)m request still open."
-                image = "hourglass"
-                tint = .orange
-            case .approved:
-                title = "\(request.audienceLabel) approved your unlock"
-                detail = "You got \(request.approvedMinutes ?? request.minutesRequested)m of access."
-                image = "checkmark.circle.fill"
-                tint = .green
-            case .denied:
-                title = "\(request.audienceLabel) denied your unlock"
-                detail = "That request didn’t go through. Stay with the block or try a different audience."
-                image = "xmark.circle.fill"
-                tint = .red
-            }
-
-            items.append(
-                FriendsActivityItem(
-                    title: title,
-                    detail: detail,
-                    systemImage: image,
-                    tint: tint,
-                    createdAt: request.createdDate,
-                    destination: .requests
-                )
-            )
-        }
-
-        return Array(items.sorted { $0.createdAt > $1.createdAt }.prefix(6))
-    }
-
-    private func relativeDateString(from date: Date) -> String {
-        let formatter = RelativeDateTimeFormatter()
-        formatter.unitsStyle = .short
-        return formatter.localizedString(for: date, relativeTo: Date())
-    }
 }
 
 private extension View {
