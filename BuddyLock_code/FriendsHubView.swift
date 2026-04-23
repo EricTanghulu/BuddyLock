@@ -207,7 +207,7 @@ struct FriendsHubView: View {
     private var circleSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             sectionTitle(
-                "Your Circle",
+                "Your Buddies",
                 subtitle: "People and private groups all live here, so you only have one place to browse your accountability network."
             )
 

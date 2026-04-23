@@ -67,8 +67,12 @@ struct SettingsView: View {
                     .foregroundStyle(.secondary)
             }
 
-            Button(role: .destructive) {} label: {
+            HStack {
                 Text("Reset local data")
+                Spacer()
+                Text("Coming soon")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
             }
         }
     }

@@ -56,7 +56,17 @@ struct MainTabView: View {
                     HomeView(
                         buddyService: buddyService,
                         friendRequestService: friendRequestService,
-                        requestService: requestService
+                        requestService: requestService,
+                        challengesService: challengesService,
+                        onOpenBuddies: {
+                            selectedTab = 3
+                        },
+                        onOpenChallenges: {
+                            selectedTab = 1
+                        },
+                        onCreateChallenge: {
+                            presentCreateDestination(.challenge)
+                        }
                     )
                 }
                 .tabItem {
@@ -132,8 +142,7 @@ struct MainTabView: View {
                     challenges: challengesService,
                     buddies: buddyService,
                     onSelect: { destination in
-                        // Just present the sheet ON TOP of the still-open popup
-                        activeCreateDestination = destination
+                        presentCreateDestination(destination)
                     },
                     onClose: {
                         // Fully close the popup (with its own animation)
@@ -261,6 +270,16 @@ struct MainTabView: View {
         }
     }
 
+    private func presentCreateDestination(_ destination: CreateDestination) {
+        withAnimation(.spring(response: 0.28, dampingFraction: 0.88)) {
+            showCreateMenu = false
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
+            activeCreateDestination = destination
+        }
+    }
+
     private func refreshOnboardingPresentation() {
         showingOnboarding = shouldPresentOnboarding
     }
@@ -314,13 +333,13 @@ private struct ChallengeCreateContainer: View {
 
 private enum OnboardingFinishDestination {
     case home
-    case friends
+    case buddies
 
     var tabIndex: Int {
         switch self {
         case .home:
             return 0
-        case .friends:
+        case .buddies:
             return 3
         }
     }
@@ -511,12 +530,12 @@ private struct OnboardingView: View {
             onboardingCard(
                 title: buddyCount > 0 ? "You already have people in your corner" : "Next step: add a buddy",
                 detail: buddyCount > 0
-                    ? "You’re set up enough to start exploring. If you want, jump straight to Friends and keep building the circle."
+                    ? "You’re set up enough to start exploring. If you want, jump straight to Buddies and keep building your support system."
                     : "You don’t need to do this right now, but adding one real person makes BuddyLock feel much more useful."
             )
 
             onboardingBullet(
-                title: "Friends tab",
+                title: "Buddies tab",
                 detail: "Send a buddy request when you’re ready to add accountability."
             )
             onboardingBullet(
@@ -555,13 +574,13 @@ private struct OnboardingView: View {
                 }
 
             case .buddies:
-                primaryButton(buddyCount > 0 ? "Finish" : "Go to Friends") {
-                    onFinish(buddyCount > 0 ? OnboardingFinishDestination.home.tabIndex : OnboardingFinishDestination.friends.tabIndex)
+                primaryButton(buddyCount > 0 ? "Finish" : "Go to Buddies") {
+                    onFinish(buddyCount > 0 ? OnboardingFinishDestination.home.tabIndex : OnboardingFinishDestination.buddies.tabIndex)
                 }
 
                 if buddyCount > 0 {
-                    secondaryButton("Go to Friends instead") {
-                        onFinish(OnboardingFinishDestination.friends.tabIndex)
+                    secondaryButton("Go to Buddies instead") {
+                        onFinish(OnboardingFinishDestination.buddies.tabIndex)
                     }
                 } else {
                     secondaryButton("Finish on Home instead") {

@@ -35,7 +35,7 @@ struct BuddyListView: View {
 
             categoriesSection
         }
-        .navigationTitle("Buddy System")
+        .navigationTitle("Manage Buddies")
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
@@ -65,7 +65,7 @@ struct BuddyListView: View {
                 GroupEditorView(buddyService: buddyService)
             }
         }
-        .alert("Buddy system", isPresented: Binding(
+        .alert("Buddies", isPresented: Binding(
             get: { feedbackMessage != nil },
             set: { newValue in
                 if !newValue {
@@ -82,7 +82,7 @@ struct BuddyListView: View {
     }
 
     private var pendingRequestsSection: some View {
-        Section("Pending Requests") {
+        Section("Pending Buddy Requests") {
             ForEach(friendRequests.incomingRequests) { request in
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 4) {
@@ -171,7 +171,7 @@ private struct AddBuddyView: View {
     var body: some View {
         Form {
             Section("Add Buddy") {
-                TextField("Friend's username", text: $friendUserID)
+                TextField("Buddy's username", text: $friendUserID)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
 

@@ -1,17 +1,17 @@
 import SwiftUI
 
 private enum ChallengeListScope: String, CaseIterable, Identifiable {
-    case friends
+    case buddies
     case global
 
     var id: String { rawValue }
 
     var title: String {
         switch self {
-        case .friends:
-            return "Friends"
+        case .buddies:
+            return "Buddies"
         case .global:
-            return "Global"
+            return "Soon"
         }
     }
 }
@@ -20,7 +20,7 @@ struct ChallengeListView: View {
     @ObservedObject var challenges: ChallengeService
     @ObservedObject var buddies: LocalBuddyService
 
-    @State private var scope: ChallengeListScope = .friends
+    @State private var scope: ChallengeListScope = .buddies
 
     private var friendChallenges: [Challenge] {
         challenges.challenges.sorted { lhs, rhs in
@@ -71,7 +71,7 @@ struct ChallengeListView: View {
                 scopePicker
 
                 switch scope {
-                case .friends:
+                case .buddies:
                     friendsOverview
                 case .global:
                     globalOverview
@@ -164,7 +164,7 @@ struct ChallengeListView: View {
             VStack(alignment: .leading, spacing: 10) {
                 Text("Global challenges are coming")
                     .font(.title3.weight(.bold))
-                Text("The tab is ready for friend-based accountability now. Later, this space can expand into app-wide events, featured seasons, and community leaderboards without changing the overall flow.")
+                Text("Buddy-based challenges are ready now. This space is reserved for future app-wide events, featured seasons, and community leaderboards.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
