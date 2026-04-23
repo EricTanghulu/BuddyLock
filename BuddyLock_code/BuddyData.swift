@@ -253,7 +253,7 @@ enum BuddyAudienceType: String, Codable, CaseIterable, Identifiable {
         case .individual:
             return "One Buddy"
         case .selectedBuddies:
-            return "Specific People"
+            return "Specific Buddies"
         case .category:
             return "Category"
         case .group:

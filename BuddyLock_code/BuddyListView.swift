@@ -26,35 +26,17 @@ struct BuddyListView: View {
     @State private var addBuddyPresented = false
     @State private var createGroupPresented = false
     @State private var feedbackMessage: String?
+    @State private var showingOrganization = true
+    @State private var showingMaintenance = true
 
     var body: some View {
         List {
-            if !friendRequests.incomingRequests.isEmpty {
-                pendingRequestsSection
-            }
-
-            categoriesSection
+            networkOverviewSection
+            connectionToolsSection
+            organizationSection
+            maintenanceSection
         }
-        .navigationTitle("Manage Buddies")
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Menu {
-                    Button {
-                        addBuddyPresented = true
-                    } label: {
-                        Label("Add Buddy", systemImage: "person.badge.plus")
-                    }
-
-                    Button {
-                        createGroupPresented = true
-                    } label: {
-                        Label("New Group", systemImage: "person.3.fill")
-                    }
-                } label: {
-                    Image(systemName: "plus")
-                }
-            }
-        }
+        .navigationTitle("Organize Buddies")
         .sheet(isPresented: $addBuddyPresented) {
             NavigationStack {
                 AddBuddyView(friendRequests: friendRequests)
@@ -81,86 +63,209 @@ struct BuddyListView: View {
         }
     }
 
-    private var pendingRequestsSection: some View {
-        Section("Pending Buddy Requests") {
-            ForEach(friendRequests.incomingRequests) { request in
-                HStack(alignment: .top) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(request.resolvedName)
-                            .font(.headline)
-                        Text("Wants to become your buddy.")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                    }
-
-                    Spacer()
-
-                    VStack(spacing: 8) {
-                        Button("Accept") {
-                            Task {
-                                do {
-                                    try await friendRequests.accept(request)
-                                } catch {
-                                    feedbackMessage = error.localizedDescription
-                                }
-                            }
-                        }
-                        .buttonStyle(.borderedProminent)
-
-                        Button("Deny") {
-                            Task {
-                                do {
-                                    try await friendRequests.reject(request)
-                                } catch {
-                                    feedbackMessage = error.localizedDescription
-                                }
-                            }
-                        }
-                        .buttonStyle(.bordered)
-                    }
+    private var networkOverviewSection: some View {
+        Section {
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Buddies is for live buddy work. Organize Buddies is for setup, cleanup, and organization.")
                     .font(.footnote)
+                    .foregroundStyle(.secondary)
+
+                HStack(spacing: 12) {
+                    overviewMetric(title: "Buddies", value: buddyService.buddies.count)
+                    overviewMetric(title: "Groups", value: buddyService.groups.count)
+                    overviewMetric(title: "Lists", value: buddyService.categories.count)
                 }
-                .padding(.vertical, 4)
+
+                if !friendRequests.incomingRequests.isEmpty {
+                    Label("\(friendRequests.incomingRequests.count) incoming request\(friendRequests.incomingRequests.count == 1 ? "" : "s") waiting on the Buddies tab", systemImage: "bell.badge")
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                }
+            }
+            .padding(.vertical, 6)
+        }
+    }
+
+    private var connectionToolsSection: some View {
+        Section {
+            VStack(alignment: .leading, spacing: 14) {
+                Text("Connection Tools")
+                    .font(.headline)
+
+                Text("Add a buddy when you want one person to handle quick accountability. Create a group when more than one buddy should decide together.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+
+                Button {
+                    addBuddyPresented = true
+                } label: {
+                    Label("Add Buddy", systemImage: "person.badge.plus")
+                }
+
+                Button {
+                    createGroupPresented = true
+                } label: {
+                    Label("New Group", systemImage: "person.3.fill")
+                }
+                .disabled(buddyService.buddies.isEmpty)
+
+                if buddyService.buddies.isEmpty {
+                    Text("Groups stay disabled until you have at least one buddy to put in them.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
         }
     }
 
-    private var categoriesSection: some View {
+    private var organizationSection: some View {
         Section {
-            ForEach(buddyService.categories) { category in
-                NavigationLink {
-                    CategoryDetailView(
-                        buddyService: buddyService,
-                        categoryID: category.id
-                    )
-                } label: {
-                    HStack {
-                        Label(category.name, systemImage: category.iconSystemName)
-                        Spacer()
-                        Text("\(buddyService.buddies(in: category).count)")
-                            .foregroundStyle(.secondary)
-                    }
-                }
-            }
+            DisclosureGroup("Organization", isExpanded: $showingOrganization) {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Lists are optional. They help once your buddy network is large enough that you want named clusters like roommates, classmates, or Best Buddies.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
 
-            HStack {
-                TextField("New category", text: $newCategoryName)
-                Button("Add") {
-                    if buddyService.createCategory(name: newCategoryName) != nil {
-                        newCategoryName = ""
+                    ForEach(orderedCategories) { category in
+                        NavigationLink {
+                            CategoryDetailView(
+                                buddyService: buddyService,
+                                categoryID: category.id
+                            )
+                        } label: {
+                            VStack(alignment: .leading, spacing: 4) {
+                                HStack {
+                                    Label(category.name, systemImage: category.iconSystemName)
+                                    Spacer()
+                                    Text("\(buddyService.buddies(in: category).count)")
+                                        .foregroundStyle(.secondary)
+                                }
+
+                                Text(categorySummary(for: category))
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            .padding(.vertical, 2)
+                        }
+                    }
+
+                    HStack {
+                        TextField("New list", text: $newCategoryName)
+                        Button("Add") {
+                            if buddyService.createCategory(name: newCategoryName) != nil {
+                                newCategoryName = ""
+                            }
+                        }
+                        .disabled(newCategoryName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                     }
                 }
-                .disabled(newCategoryName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
         } header: {
-            Text("Lists")
+            EmptyView()
         } footer: {
-            Text("This is where lists like Best Buddies or study partners live. Your actual buddies and groups stay on the main Buddies tab.")
+            Text("Individual buddies and groups stay on the main Buddies tab so this screen does not duplicate your live network.")
         }
+    }
+
+    private var maintenanceSection: some View {
+        Section {
+            DisclosureGroup("Maintenance", isExpanded: $showingMaintenance) {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Use this area for cleanup, not daily buddy work.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+
+                    if emptyCustomCategories.isEmpty && emptyGroups.isEmpty {
+                        Text("No cleanup needed right now. Your buddy lists and groups look healthy.")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        if !emptyCustomCategories.isEmpty {
+                            HStack {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("\(emptyCustomCategories.count) empty list\(emptyCustomCategories.count == 1 ? "" : "s")")
+                                        .font(.subheadline.weight(.semibold))
+                                    Text("These lists have no buddies in them yet.")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+
+                                Spacer()
+
+                                Button("Remove Empty Lists") {
+                                    for category in emptyCustomCategories {
+                                        buddyService.removeCategory(category)
+                                    }
+                                }
+                                .buttonStyle(.bordered)
+                            }
+                        }
+
+                        if !emptyGroups.isEmpty {
+                            HStack {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("\(emptyGroups.count) empty group\(emptyGroups.count == 1 ? "" : "s")")
+                                        .font(.subheadline.weight(.semibold))
+                                    Text("These groups no longer have any buddies in them.")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+
+                                Spacer()
+
+                                Button("Remove Empty Groups") {
+                                    for group in emptyGroups {
+                                        buddyService.removeGroup(group)
+                                    }
+                                }
+                                .buttonStyle(.bordered)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func overviewMetric(title: String, value: Int) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text("\(value)")
+                .font(.headline)
+            Text(title)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var orderedCategories: [BuddyCategory] {
+        buddyService.categories.sorted {
+            $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
+        }
+    }
+
+    private var emptyCustomCategories: [BuddyCategory] {
+        orderedCategories.filter { !$0.isBuiltIn && buddyService.buddies(in: $0).isEmpty }
+    }
+
+    private var emptyGroups: [BuddyGroup] {
+        buddyService.groups.filter { $0.memberIDs.isEmpty }
+    }
+
+    private func categorySummary(for category: BuddyCategory) -> String {
+        if category.isBuiltIn {
+            return "Built-in buddy list"
+        }
+
+        let memberCount = buddyService.buddies(in: category).count
+        if memberCount == 0 {
+            return "Custom list • Empty right now"
+        }
+        return "Custom list • \(memberCount) buddy\(memberCount == 1 ? "" : "ies")"
     }
 }
 
-private struct AddBuddyView: View {
+struct AddBuddyView: View {
     @ObservedObject var friendRequests: FriendRequestService
     @Environment(\.dismiss) private var dismiss
 
@@ -175,7 +280,7 @@ private struct AddBuddyView: View {
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
 
-                Text("BuddyLock works best with people you already know. Send them your username so they can connect quickly.")
+                Text("BuddyLock works best with buddies you already know. Send them your username so they can connect quickly.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
@@ -230,7 +335,7 @@ private struct AddBuddyView: View {
     }
 }
 
-private struct BuddyDetailView: View {
+struct BuddyDetailView: View {
     @ObservedObject var buddyService: LocalBuddyService
     let buddyID: UUID
 
@@ -259,7 +364,7 @@ private struct BuddyDetailView: View {
 
                         if !buddyService.isBestBuddy(buddy),
                            buddyService.bestBuddyCount >= BuddyDataConstants.maxBestBuddies {
-                            Text("Best Buddies are limited to \(BuddyDataConstants.maxBestBuddies) people so the category stays meaningful.")
+                            Text("Best Buddies are limited to \(BuddyDataConstants.maxBestBuddies) buddies so the category stays meaningful.")
                                 .font(.footnote)
                                 .foregroundStyle(.secondary)
                         }
@@ -360,7 +465,7 @@ private struct BuddyDetailView: View {
     }
 }
 
-private struct CategoryDetailView: View {
+struct CategoryDetailView: View {
     @ObservedObject var buddyService: LocalBuddyService
     let categoryID: UUID
 
@@ -446,7 +551,7 @@ private struct CategoryDetailView: View {
     }
 }
 
-private struct GroupDetailView: View {
+struct GroupDetailView: View {
     @ObservedObject var buddyService: LocalBuddyService
     let groupID: UUID
 
@@ -590,7 +695,7 @@ private struct GroupDetailView: View {
     }
 }
 
-private struct GroupEditorView: View {
+struct GroupEditorView: View {
     @ObservedObject var buddyService: LocalBuddyService
     @Environment(\.dismiss) private var dismiss
 

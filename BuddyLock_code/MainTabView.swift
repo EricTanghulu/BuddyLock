@@ -39,6 +39,7 @@ struct MainTabView: View {
     @State private var activeCreateDestination: CreateDestination?
     @State private var showingShieldPrompt = false
     @State private var showingOnboarding = false
+    @State private var showingAskBuddyFromHome = false
 
     init() {
         let buddyService = LocalBuddyService()
@@ -60,6 +61,9 @@ struct MainTabView: View {
                         challengesService: challengesService,
                         onOpenBuddies: {
                             selectedTab = 3
+                        },
+                        onAskForUnlock: {
+                            showingAskBuddyFromHome = true
                         },
                         onOpenChallenges: {
                             selectedTab = 1
@@ -98,7 +102,7 @@ struct MainTabView: View {
 
                 // 4) BUDDIES TAB
                 NavigationStack {
-                    FriendsHubView(
+                    BuddiesHubView(
                         buddyService: buddyService,
                         friendRequestService: friendRequestService,
                         requestService: requestService
@@ -174,6 +178,15 @@ struct MainTabView: View {
                     buddyService: buddyService,
                     requestService: requestService,
                     challengesService: challengesService
+                )
+                .environmentObject(screenTime)
+            }
+        }
+        .sheet(isPresented: $showingAskBuddyFromHome) {
+            NavigationStack {
+                AskBuddyView(
+                    buddyService: buddyService,
+                    requestService: requestService
                 )
                 .environmentObject(screenTime)
             }
@@ -360,7 +373,7 @@ private enum OnboardingStep: Int, CaseIterable {
         case .screenTime:
             return "Screen Time"
         case .buddies:
-            return "Your People"
+            return "Your Buddies"
         }
     }
 }
@@ -528,7 +541,7 @@ private struct OnboardingView: View {
     private var buddiesStep: some View {
         VStack(alignment: .leading, spacing: 16) {
             onboardingCard(
-                title: buddyCount > 0 ? "You already have people in your corner" : "Next step: add a buddy",
+                title: buddyCount > 0 ? "You already have buddies in your corner" : "Next step: add a buddy",
                 detail: buddyCount > 0
                     ? "You’re set up enough to start exploring. If you want, jump straight to Buddies and keep building your support system."
                     : "You don’t need to do this right now, but adding one real person makes BuddyLock feel much more useful."

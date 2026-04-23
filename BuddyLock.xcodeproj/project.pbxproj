@@ -43,7 +43,7 @@
 		316451E72ED918B300CECA7D /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 316451E62ED918B300CECA7D /* MainTabView.swift */; };
 		316451E92ED918D900CECA7D /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 316451E82ED918D900CECA7D /* HomeView.swift */; };
 		316451EB2ED918F300CECA7D /* CreateTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 316451EA2ED918F300CECA7D /* CreateTabView.swift */; };
-		316451ED2ED9191200CECA7D /* FriendsHubView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 316451EC2ED9191200CECA7D /* FriendsHubView.swift */; };
+		316451ED2ED9191200CECA7D /* BuddiesHubView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 316451EC2ED9191200CECA7D /* BuddiesHubView.swift */; };
 		316451EF2ED9193800CECA7D /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 316451EE2ED9193800CECA7D /* ProfileView.swift */; };
 		316451F92ED97CF100CECA7D /* CreateMomentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 316451F82ED97CF100CECA7D /* CreateMomentView.swift */; };
 		318DD9CC2E55992700A578A8 /* BuddyListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 318DD9CB2E55991F00A578A8 /* BuddyListView.swift */; };
@@ -114,7 +114,7 @@
 		316451E62ED918B300CECA7D /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
 		316451E82ED918D900CECA7D /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		316451EA2ED918F300CECA7D /* CreateTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateTabView.swift; sourceTree = "<group>"; };
-		316451EC2ED9191200CECA7D /* FriendsHubView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FriendsHubView.swift; sourceTree = "<group>"; };
+		316451EC2ED9191200CECA7D /* BuddiesHubView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuddiesHubView.swift; sourceTree = "<group>"; };
 		316451EE2ED9193800CECA7D /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
 		316451F82ED97CF100CECA7D /* CreateMomentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateMomentView.swift; sourceTree = "<group>"; };
 		318DD9CB2E55991F00A578A8 /* BuddyListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuddyListView.swift; sourceTree = "<group>"; };
@@ -308,7 +308,7 @@
 				313B2B6C2EDB884300F59DD1 /* Create Views */,
 				313B2B692EDB87F700F59DD1 /* Challenge Views */,
 				313B2B602EDAD47700F59DD1 /* Profile Views */,
-				316451EC2ED9191200CECA7D /* FriendsHubView.swift */,
+				316451EC2ED9191200CECA7D /* BuddiesHubView.swift */,
 				316451EA2ED918F300CECA7D /* CreateTabView.swift */,
 				316451E82ED918D900CECA7D /* HomeView.swift */,
 				316451E62ED918B300CECA7D /* MainTabView.swift */,
@@ -492,7 +492,7 @@
 				311CCA862E59827800E4E9B1 /* LocalBuddyService.swift in Sources */,
 				0CFDC9B02F0DC3B3007CEEBE /* FriendRequest.swift in Sources */,
 				311CCA812E59823500E4E9B1 /* AskBuddyView.swift in Sources */,
-				316451ED2ED9191200CECA7D /* FriendsHubView.swift in Sources */,
+				316451ED2ED9191200CECA7D /* BuddiesHubView.swift in Sources */,
 				311CCA7F2E59822300E4E9B1 /* ApprovalsView.swift in Sources */,
 				316451F92ED97CF100CECA7D /* CreateMomentView.swift in Sources */,
 				311CCA872E59846700E4E9B1 /* BuddyData.swift in Sources */,

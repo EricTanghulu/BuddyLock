@@ -11,6 +11,7 @@ struct HomeView: View {
     @ObservedObject var challengesService: ChallengeService
 
     var onOpenBuddies: () -> Void = {}
+    var onAskForUnlock: () -> Void = {}
     var onOpenChallenges: () -> Void = {}
     var onCreateChallenge: () -> Void = {}
 
@@ -613,6 +614,10 @@ private extension HomeView {
         requestService.incoming.filter { requestService.canCurrentUserRespond(to: $0) }.count
     }
 
+    var unlockApprovalBuddiesCount: Int {
+        buddyService.buddies.filter(\.canApproveUnlocks).count
+    }
+
     var outgoingPendingCount: Int {
         requestService.outgoing.filter { $0.decision == .pending }.count
     }
@@ -867,9 +872,9 @@ private extension HomeView {
     var buddyShortcut: HomeShortcutInfo {
         if pendingApprovalsCount > 0 {
             return HomeShortcutInfo(
-                title: "Review approvals",
+                title: "Buddy inbox: approvals",
                 detail: "\(pendingApprovalsCount) unlock decision\(pendingApprovalsCount == 1 ? "" : "s") need your response.",
-                buttonTitle: "Review approvals",
+                buttonTitle: "Open buddy inbox",
                 systemImage: "checkmark.seal.fill",
                 tint: .green,
                 action: onOpenBuddies
@@ -878,9 +883,9 @@ private extension HomeView {
 
         if pendingFriendRequestsCount > 0 {
             return HomeShortcutInfo(
-                title: "Buddy requests waiting",
+                title: "Buddy inbox: requests",
                 detail: "\(pendingFriendRequestsCount) new request\(pendingFriendRequestsCount == 1 ? "" : "s") came in.",
-                buttonTitle: "Accept requests",
+                buttonTitle: "Open buddy inbox",
                 systemImage: "person.badge.plus",
                 tint: .blue,
                 action: onOpenBuddies
@@ -889,9 +894,9 @@ private extension HomeView {
 
         if outgoingPendingCount > 0 {
             return HomeShortcutInfo(
-                title: "Pending unlocks",
+                title: "Buddy inbox: pending unlocks",
                 detail: "\(outgoingPendingCount) request\(outgoingPendingCount == 1 ? "" : "s") still need a buddy response.",
-                buttonTitle: "Check unlocks",
+                buttonTitle: "Open buddy inbox",
                 systemImage: "hourglass",
                 tint: .orange,
                 action: onOpenBuddies
@@ -909,10 +914,21 @@ private extension HomeView {
             )
         }
 
+        if unlockApprovalBuddiesCount > 0 {
+            return HomeShortcutInfo(
+                title: "Ask a buddy",
+                detail: "Start an unlock request from Home without leaving your main focus flow.",
+                buttonTitle: "Ask for unlock",
+                systemImage: "paperplane.fill",
+                tint: .green,
+                action: onAskForUnlock
+            )
+        }
+
         return HomeShortcutInfo(
-            title: "Your buddy network",
+            title: "Open your buddies",
             detail: "\(buddyService.buddies.count) buddy\(buddyService.buddies.count == 1 ? "" : "ies") are already in your corner.",
-            buttonTitle: "Manage buddies",
+            buttonTitle: "Open buddies",
             systemImage: "person.2.fill",
             tint: .purple,
             action: onOpenBuddies
@@ -1525,11 +1541,11 @@ private extension HomeView {
 
         if pendingApprovalsCount > 0 {
             return HomeHero(
-                title: "Buddy decisions are waiting",
+                title: "Buddy inbox: approvals waiting",
                 detail: "\(pendingApprovalsCount) unlock decision\(pendingApprovalsCount == 1 ? "" : "s") need your response before someone can get back into a blocked app.",
                 systemImage: "checkmark.seal.fill",
                 tint: .green,
-                primaryButtonTitle: "Review approvals",
+                primaryButtonTitle: "Open buddy inbox",
                 primaryAction: onOpenBuddies,
                 secondaryButtonTitle: canLaunchNewFocusSession ? "Start focus" : nil,
                 secondaryAction: canLaunchNewFocusSession ? launchSelectedFocus : nil,
@@ -1539,11 +1555,11 @@ private extension HomeView {
 
         if pendingFriendRequestsCount > 0 {
             return HomeHero(
-                title: "Your buddy inbox needs attention",
+                title: "Buddy inbox: new requests",
                 detail: "\(pendingFriendRequestsCount) new request\(pendingFriendRequestsCount == 1 ? "" : "s") came in.",
                 systemImage: "person.badge.plus",
                 tint: .blue,
-                primaryButtonTitle: "Review buddy requests",
+                primaryButtonTitle: "Open buddy inbox",
                 primaryAction: onOpenBuddies,
                 secondaryButtonTitle: nil,
                 secondaryAction: nil,
@@ -1553,11 +1569,11 @@ private extension HomeView {
 
         if outgoingPendingCount > 0 {
             return HomeHero(
-                title: "You’re waiting on your buddies",
+                title: "Buddy inbox: waiting on responses",
                 detail: "\(outgoingPendingCount) unlock request\(outgoingPendingCount == 1 ? "" : "s") are still pending right now.",
                 systemImage: "hourglass",
                 tint: .orange,
-                primaryButtonTitle: "Check request status",
+                primaryButtonTitle: "Open buddy inbox",
                 primaryAction: onOpenBuddies,
                 secondaryButtonTitle: nil,
                 secondaryAction: nil,
