@@ -38,6 +38,8 @@ struct HomeView: View {
     @State private var showingFocusOptions = false
     @State private var savedPresets: [HomeRoutinePreset] = []
     @State private var didLoadPresets = false
+    @State private var usageLimitDraft = ""
+    @FocusState private var usageLimitFieldFocused: Bool
 
     var body: some View {
         ScrollView {
@@ -129,10 +131,25 @@ struct HomeView: View {
         }
         .task {
             loadSavedPresetsIfNeeded()
+            syncUsageLimitDraft()
         }
         .onChange(of: savedPresets) { _, newValue in
             persistSavedPresets(newValue)
             ensureSelectedFocusPresetStillExists(in: newValue)
+        }
+        .onChange(of: screenTime.usageLimitMinutes) { _, _ in
+            if !usageLimitFieldFocused {
+                syncUsageLimitDraft()
+            }
+        }
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("Done") {
+                    applyUsageLimitDraft()
+                    usageLimitFieldFocused = false
+                }
+            }
         }
     }
 }
@@ -476,6 +493,83 @@ private extension HomeView {
                     }
                 }
 
+                VStack(alignment: .leading, spacing: 12) {
+                    Divider()
+
+                    HStack(alignment: .top, spacing: 12) {
+                        Image(systemName: usageLimitIcon)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(usageLimitTint)
+                            .frame(width: 34, height: 34)
+                            .background(usageLimitTint.opacity(0.14), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+
+                        VStack(alignment: .leading, spacing: 6) {
+                            HStack(spacing: 8) {
+                                Text(usageLimitHeadline)
+                                    .font(.subheadline.weight(.semibold))
+
+                                usageLimitStatusChip
+                            }
+
+                            Text(usageLimitDetail)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        Spacer(minLength: 8)
+
+                        Toggle("", isOn: Binding(
+                            get: { screenTime.isUsageLimitEnabled },
+                            set: { newValue in
+                                if newValue {
+                                    applyUsageLimitDraft()
+                                    screenTime.enableUsageLimit()
+                                } else {
+                                    screenTime.disableUsageLimit()
+                                }
+                            })
+                        )
+                        .labelsHidden()
+                        .disabled(!screenTime.isAuthorized || !hasBlockedSelection)
+                    }
+
+                    HStack(alignment: .center, spacing: 10) {
+                        Text("Minutes before shield")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.secondary)
+
+                        Spacer()
+
+                        TextField("30", text: $usageLimitDraft)
+                            .keyboardType(.numberPad)
+                            .multilineTextAlignment(.trailing)
+                            .focused($usageLimitFieldFocused)
+                            .frame(width: 64)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 8)
+                            .background(Color(.systemGray6), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                            .onChange(of: usageLimitDraft) { _, newValue in
+                                let digits = newValue.filter(\.isNumber)
+                                if digits != newValue {
+                                    usageLimitDraft = digits
+                                }
+                            }
+
+                        Text("min")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.secondary)
+
+                        Button("Set") {
+                            applyUsageLimitDraft()
+                            usageLimitFieldFocused = false
+                        }
+                        .font(.caption.weight(.semibold))
+                        .buttonStyle(.bordered)
+                        .disabled(!canEditUsageLimit)
+                    }
+                    .disabled(!screenTime.isAuthorized || !hasBlockedSelection)
+                }
+
                 Button {
                     openBlockedAppsEditor()
                 } label: {
@@ -589,6 +683,18 @@ private extension HomeView {
             return "Focus is underway and the rest of Home steps back a bit."
         case .idle, .completed, .cancelled:
             break
+        }
+
+        if screenTime.usageLimitState == .exceeded {
+            return "You hit your BuddyLock limit, so those apps are shielded until you get an unlock or the next window starts."
+        }
+
+        if screenTime.isUsageLimitEnabled {
+            if screenTime.usageLimitMinutes == 0 {
+                return "Your usage limit is armed. BuddyLock will shield these apps right away."
+            }
+
+            return "Your usage limit is armed. BuddyLock won’t shield until you cross \(screenTime.usageLimitMinutes) minute\(screenTime.usageLimitMinutes == 1 ? "" : "s")."
         }
 
         switch screenTime.activeMode {
@@ -791,6 +897,10 @@ private extension HomeView {
             return "No blocked apps picked yet"
         }
 
+        if screenTime.usageLimitState == .exceeded {
+            return "Time limit reached"
+        }
+
         if screenTime.isBaselineEnabled {
             return "You're protected"
         }
@@ -807,6 +917,18 @@ private extension HomeView {
             return "Choose the apps, categories, and websites you want Home to protect by default."
         }
 
+        if screenTime.usageLimitState == .exceeded {
+            return "You crossed your BuddyLock limit, so these apps are shielded until a buddy unlocks them or the limit window resets."
+        }
+
+        if screenTime.isUsageLimitEnabled {
+            if screenTime.usageLimitMinutes == 0 {
+                return "These shield immediately, and then you can ask a buddy to unlock them."
+            }
+
+            return "These stay open normally until you spend \(screenTime.usageLimitMinutes) minute\(screenTime.usageLimitMinutes == 1 ? "" : "s") in them, then BuddyLock applies the shield."
+        }
+
         return screenTime.isBaselineEnabled
             ? "Baseline blocking is on, so these stay protected even when no focus session is running."
             : "Baseline blocking is off right now. These still apply during focus sessions and locks."
@@ -821,7 +943,7 @@ private extension HomeView {
             return "This stays compact once setup is complete, so protection stays easy to verify without taking over the page."
         }
 
-        return "This is your protection layer. Baseline keeps it on all day; focus turns it into a timed session."
+        return "This is your protection layer. Baseline keeps it on all day, focus turns it into a timed session, and the usage limit waits to shield until the threshold is reached."
     }
 
     var shouldUseCompactBlockedAppsSection: Bool {
@@ -833,9 +955,84 @@ private extension HomeView {
             ? "Your default preset uses its own blocked apps."
             : "Your default preset uses this set."
 
+        if screenTime.usageLimitState == .exceeded {
+            return "Limit reached. Buddy unlocks are now available from the shield."
+        }
+
+        if screenTime.isUsageLimitEnabled {
+            return "Limit mode is on. \(focusSource)"
+        }
+
         return screenTime.isBaselineEnabled
             ? "Baseline is on. \(focusSource)"
             : "Baseline is off. \(focusSource)"
+    }
+
+    var usageLimitHeadline: String {
+        if screenTime.usageLimitState == .exceeded {
+            return "Buddy unlocks are live"
+        }
+
+        return "Usage limit shield"
+    }
+
+    var usageLimitDetail: String {
+        if !screenTime.isAuthorized {
+            return "Turn on Screen Time first so BuddyLock can watch for the threshold."
+        }
+
+        if !hasBlockedSelection {
+            return "Choose blocked apps first, then BuddyLock can wait until you hit the limit before shielding them."
+        }
+
+        switch screenTime.usageLimitState {
+        case .inactive:
+            return "Leave this on when you want apps to stay open until you actually use up the time limit."
+        case .monitoring:
+            if screenTime.usageLimitMinutes == 0 {
+                return "A 0-minute limit applies the shield right away, and you can ask a buddy to unlock when you need access."
+            }
+
+            return "These apps stay unshielded until you cross the limit, then the shield appears and you can ask a buddy to unlock."
+        case .exceeded:
+            return "The limit has been exceeded, so the shield is up and you can ask a buddy for more time."
+        }
+    }
+
+    var usageLimitIcon: String {
+        switch screenTime.usageLimitState {
+        case .inactive, .monitoring:
+            return "hourglass"
+        case .exceeded:
+            return "lock.shield.fill"
+        }
+    }
+
+    var usageLimitTint: Color {
+        switch screenTime.usageLimitState {
+        case .inactive:
+            return .orange
+        case .monitoring:
+            return .accentColor
+        case .exceeded:
+            return .red
+        }
+    }
+
+    @ViewBuilder
+    var usageLimitStatusChip: some View {
+        switch screenTime.usageLimitState {
+        case .inactive:
+            statusChip("Off", tint: .secondary)
+        case .monitoring:
+            statusChip("Waiting", tint: .orange)
+        case .exceeded:
+            statusChip("Shield live", tint: .red)
+        }
+    }
+
+    var canEditUsageLimit: Bool {
+        screenTime.isAuthorized && hasBlockedSelection && !usageLimitDraft.isEmpty
     }
 
     var compactSelectionSummary: String {
@@ -1002,6 +1199,17 @@ private extension HomeView {
 
         if screenTime.isBaselineEnabled {
             badges.append(HomeBadge(title: "Baseline on", tint: .green))
+        }
+
+        if screenTime.usageLimitState == .exceeded {
+            badges.append(HomeBadge(title: "Limit reached", tint: .orange))
+        } else if screenTime.isUsageLimitEnabled {
+            badges.append(
+                HomeBadge(
+                    title: screenTime.usageLimitMinutes == 0 ? "Instant limit" : "\(screenTime.usageLimitMinutes)m limit",
+                    tint: .orange
+                )
+            )
         }
 
         if activeChallengesCount > 0 {
@@ -1539,6 +1747,20 @@ private extension HomeView {
             break
         }
 
+        if screenTime.usageLimitState == .exceeded {
+            return HomeHero(
+                title: "Your BuddyLock limit kicked in",
+                detail: "Those apps are shielded now. Ask a buddy for more time when you need it.",
+                systemImage: "hourglass",
+                tint: .orange,
+                primaryButtonTitle: "Ask for unlock",
+                primaryAction: onAskForUnlock,
+                secondaryButtonTitle: "Edit blocked apps",
+                secondaryAction: openBlockedAppsEditor,
+                badges: heroBadges
+            )
+        }
+
         if pendingApprovalsCount > 0 {
             return HomeHero(
                 title: "Buddy inbox: approvals waiting",
@@ -1602,6 +1824,22 @@ private extension HomeView {
         savedPresets = decodeSavedPresets(from: savedRoutinePresetsData)
             .sorted { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
         ensureSelectedFocusPresetStillExists(in: savedPresets)
+    }
+
+    func syncUsageLimitDraft() {
+        usageLimitDraft = "\(screenTime.usageLimitMinutes)"
+    }
+
+    func applyUsageLimitDraft() {
+        let digits = usageLimitDraft.filter(\.isNumber)
+
+        guard let parsed = Int(digits), !digits.isEmpty else {
+            syncUsageLimitDraft()
+            return
+        }
+
+        screenTime.setUsageLimitMinutes(parsed)
+        syncUsageLimitDraft()
     }
 
     func persistSavedPresets(_ presets: [HomeRoutinePreset]) {

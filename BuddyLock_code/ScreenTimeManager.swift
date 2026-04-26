@@ -1,6 +1,10 @@
 import Foundation
 import SwiftUI
 
+#if canImport(DeviceActivity)
+import DeviceActivity
+#endif
+
 #if canImport(ManagedSettings)
 import ManagedSettings
 #endif
@@ -69,6 +73,12 @@ struct FocusSessionState: Equatable, Codable {
 
 @MainActor
 final class ScreenTimeManager: ObservableObject {
+    enum UsageLimitState: Equatable {
+        case inactive
+        case monitoring
+        case exceeded
+    }
+
     private struct PersistedSessionState: Codable {
         enum Mode: String, Codable {
             case none
@@ -85,6 +95,14 @@ final class ScreenTimeManager: ObservableObject {
     }
 
     private static let persistedSessionKey = "BuddyLock.persistedSessionState"
+    private static let persistedSelectionKey = "BuddyLock.persistedSelection"
+    private static let persistedUsageLimitEnabledKey = "BuddyLock.persistedUsageLimitEnabled"
+    private static let persistedUsageLimitMinutesKey = "BuddyLock.persistedUsageLimitMinutes"
+    private static let usageLimitSharedSelectionKey = "BuddyLock_UsageLimit_Selection"
+    private static let usageLimitSharedEnabledKey = "BuddyLock_UsageLimit_Enabled"
+    private static let usageLimitSharedMinutesKey = "BuddyLock_UsageLimit_Minutes"
+    private static let usageLimitSharedExceededKey = "BuddyLock_UsageLimit_Exceeded"
+    private static let usageLimitSharedExceededAtKey = "BuddyLock_UsageLimit_ExceededAt"
 
     // MARK: High-level modes
 
@@ -130,6 +148,18 @@ final class ScreenTimeManager: ObservableObject {
     /// Timestamp for when a temporary exception ends, if any.
     @Published private(set) var exceptionEndsAt: Date? = nil
 
+    /// Whether the Screen Time usage-limit flow is enabled.
+    @Published private(set) var isUsageLimitEnabled: Bool = false
+
+    /// The number of minutes a user gets before BuddyLock applies shields.
+    @Published private(set) var usageLimitMinutes: Int = 30
+
+    /// Current state of the usage-limit flow.
+    @Published private(set) var usageLimitState: UsageLimitState = .inactive
+
+    /// Timestamp for when the usage limit was exceeded, if any.
+    @Published private(set) var usageLimitExceededAt: Date? = nil
+
     /// Timestamp for when a paused focus window auto-ends, if any.
     @Published private(set) var focusPauseEndsAt: Date? = nil
 
@@ -145,7 +175,14 @@ final class ScreenTimeManager: ObservableObject {
     /// - Baseline blocking
     /// - Focus sessions
     /// - Panic button
-    @Published var selection: FamilyActivitySelection = .init()
+    @Published var selection: FamilyActivitySelection = .init() {
+        didSet {
+            persistSelection()
+            if isUsageLimitEnabled {
+                refreshUsageLimitMonitoring(resetExceededState: true)
+            }
+        }
+    }
 
     /// Optional selection representing "allowed essentials" for the
     /// "everything but essentials" mode. For now we expose it so the UI
@@ -185,8 +222,11 @@ final class ScreenTimeManager: ObservableObject {
     // MARK: - Init / deinit
 
     init() {
+        restorePersistedSelectionIfNeeded()
+        restoreUsageLimitPreferences()
         startTicker()
         restorePersistedSessionIfNeeded()
+        syncUsageLimitStateFromSharedDefaults()
         Task { [weak self] in
             await self?.refreshAuthorizationState()
         }
@@ -225,6 +265,10 @@ final class ScreenTimeManager: ObservableObject {
             self.isAuthorized = (status == .approved)
             self.hasResolvedAuthorizationStatus = true
         }
+        if isAuthorized && isUsageLimitEnabled {
+            refreshUsageLimitMonitoring()
+        }
+        syncUsageLimitStateFromSharedDefaults()
         #else
         isAuthorized = false
         hasResolvedAuthorizationStatus = true
@@ -235,6 +279,9 @@ final class ScreenTimeManager: ObservableObject {
 
     /// Enable the "always-on" baseline blocking using the current `selection`.
     func enableBaseline() {
+        if isUsageLimitEnabled {
+            disableUsageLimit()
+        }
         isBaselineEnabled = true
         // Only actually apply shields if we are not in a more specific
         // mode; if we *are*, the other mode will call `ap)`.
@@ -248,9 +295,8 @@ final class ScreenTimeManager: ObservableObject {
     func disableBaseline() {
         isBaselineEnabled = false
         if activeMode == .baseline {
-            // We were only in baseline mode – clear shields entirely.
-            clearShield()
             activeMode = .idle
+            refreshShieldForCurrentState()
         }
     }
 
@@ -337,11 +383,10 @@ final class ScreenTimeManager: ObservableObject {
         // enabled, otherwise to idle.
         if isBaselineEnabled {
             activeMode = .baseline
-            applyShield()
         } else {
             activeMode = .idle
-            clearShield()
         }
+        refreshShieldForCurrentState()
         clearPersistedSession()
     }
 
@@ -426,14 +471,12 @@ final class ScreenTimeManager: ObservableObject {
 
         if focusState.isActive {
             activeMode = .focus
-            applyShield()
         } else if isBaselineEnabled {
             activeMode = .baseline
-            applyShield()
         } else {
             activeMode = .idle
-            clearShield()
         }
+        refreshShieldForCurrentState()
     }
 
     // MARK: - "Everything but essentials" mode
@@ -466,17 +509,75 @@ final class ScreenTimeManager: ObservableObject {
 
         if focusState.isActive {
             activeMode = .focus
-            applyShield()
         } else if panicEndsAt != nil {
             activeMode = .panic
-            applyShield()
         } else if isBaselineEnabled {
             activeMode = .baseline
-            applyShield()
         } else {
             activeMode = .idle
-            clearShield()
         }
+        refreshShieldForCurrentState()
+    }
+
+    // MARK: - Usage limit
+
+    func setUsageLimitMinutes(_ minutes: Int) {
+        let clamped = min(max(minutes, 0), 760)
+        guard usageLimitMinutes != clamped else { return }
+
+        usageLimitMinutes = clamped
+        persistUsageLimitPreferences()
+
+        if isUsageLimitEnabled {
+            refreshUsageLimitMonitoring(resetExceededState: true)
+        }
+    }
+
+    func enableUsageLimit() {
+        if isBaselineEnabled {
+            disableBaseline()
+        }
+
+        isUsageLimitEnabled = true
+        persistUsageLimitPreferences()
+        refreshUsageLimitMonitoring(resetExceededState: true)
+    }
+
+    func disableUsageLimit() {
+        isUsageLimitEnabled = false
+        usageLimitState = .inactive
+        usageLimitExceededAt = nil
+        persistUsageLimitPreferences()
+        stopUsageLimitMonitoring(clearExceededState: true)
+        refreshShieldForCurrentState()
+    }
+
+    func syncUsageLimitStateFromSharedDefaults() {
+        guard isUsageLimitEnabled else {
+            usageLimitState = .inactive
+            usageLimitExceededAt = nil
+            stopUsageLimitMonitoring(clearExceededState: true)
+            refreshShieldForCurrentState()
+            return
+        }
+
+        guard let defaults = usageLimitSharedDefaults() else {
+            usageLimitState = .monitoring
+            usageLimitExceededAt = nil
+            refreshShieldForCurrentState()
+            return
+        }
+
+        let exceeded = defaults.bool(forKey: Self.usageLimitSharedExceededKey)
+        usageLimitState = exceeded ? .exceeded : .monitoring
+
+        if let timestamp = defaults.object(forKey: Self.usageLimitSharedExceededAtKey) as? TimeInterval {
+            usageLimitExceededAt = Date(timeIntervalSince1970: timestamp)
+        } else {
+            usageLimitExceededAt = nil
+        }
+
+        refreshShieldForCurrentState()
     }
 
     // MARK: - Shields
@@ -490,37 +591,85 @@ final class ScreenTimeManager: ObservableObject {
     ///   essentials differently.
     func applyShield() {
         #if canImport(ManagedSettings) && canImport(FamilyControls)
-        let store = ManagedSettingsStore()
-
-        // Apps (direct set; nil removes any app shields)
-        let activeSelection = effectiveShieldSelection
-
-        if activeSelection.applicationTokens.isEmpty {
-            store.shield.applications = nil
-            lastAppliedApplicationTokens = []
-        } else {
-            store.shield.applications = activeSelection.applicationTokens
-            lastAppliedApplicationTokens = activeSelection.applicationTokens
-        }
-
-        // App/activity categories
-        if activeSelection.categoryTokens.isEmpty {
-            store.shield.applicationCategories = nil
-        } else {
-            store.shield.applicationCategories = .specific(activeSelection.categoryTokens)
-        }
-
-        // Web domains
-        if activeSelection.webDomainTokens.isEmpty {
-            store.shield.webDomains = nil
-        } else {
-            store.shield.webDomains = activeSelection.webDomainTokens
-        }
-
+        applyShield(in: ManagedSettingsStore(), using: effectiveShieldSelection)
         isShieldActive = true
         #else
         // No-ops so the demo UI still works without the frameworks/capabilities.
         isShieldActive = true
+        #endif
+    }
+
+    #if canImport(ManagedSettings) && canImport(FamilyControls)
+    private func applyShield(in store: ManagedSettingsStore, using selection: FamilyActivitySelection) {
+        if selection.applicationTokens.isEmpty {
+            store.shield.applications = nil
+            lastAppliedApplicationTokens = []
+        } else {
+            store.shield.applications = selection.applicationTokens
+            lastAppliedApplicationTokens = selection.applicationTokens
+        }
+
+        if selection.categoryTokens.isEmpty {
+            store.shield.applicationCategories = nil
+        } else {
+            store.shield.applicationCategories = .specific(selection.categoryTokens)
+        }
+
+        if selection.webDomainTokens.isEmpty {
+            store.shield.webDomains = nil
+        } else {
+            store.shield.webDomains = selection.webDomainTokens
+        }
+    }
+
+    private func clearShield(in store: ManagedSettingsStore) {
+        store.shield.applications = nil
+        store.shield.applicationCategories = nil
+        store.shield.webDomains = nil
+    }
+    #endif
+
+    private var shouldApplyCoreShieldForCurrentState: Bool {
+        if exceptionEndsAt != nil || focusState.phase == .paused {
+            return false
+        }
+
+        switch activeMode {
+        case .baseline, .focus, .panic, .essentialsOnly:
+            return true
+        case .idle:
+            return false
+        }
+    }
+
+    private var shouldApplyUsageLimitShieldForCurrentState: Bool {
+        if exceptionEndsAt != nil || focusState.phase == .paused {
+            return false
+        }
+
+        return usageLimitState == .exceeded
+    }
+
+    private func refreshShieldForCurrentState() {
+        #if canImport(ManagedSettings) && canImport(FamilyControls)
+        let coreStore = ManagedSettingsStore()
+        let usageLimitStore = ManagedSettingsStore(named: .buddyLockUsageLimitStore)
+
+        if shouldApplyCoreShieldForCurrentState {
+            applyShield(in: coreStore, using: effectiveShieldSelection)
+        } else {
+            clearShield(in: coreStore)
+        }
+
+        if shouldApplyUsageLimitShieldForCurrentState {
+            applyShield(in: usageLimitStore, using: selection)
+        } else {
+            clearShield(in: usageLimitStore)
+        }
+
+        isShieldActive = shouldApplyCoreShieldForCurrentState || shouldApplyUsageLimitShieldForCurrentState
+        #else
+        isShieldActive = shouldApplyCoreShieldForCurrentState || shouldApplyUsageLimitShieldForCurrentState
         #endif
     }
 
@@ -535,11 +684,9 @@ final class ScreenTimeManager: ObservableObject {
 
     /// Clears all shields.
     func clearShield() {
-        #if canImport(ManagedSettings)
-        let store = ManagedSettingsStore()
-        store.shield.applications = nil
-        store.shield.applicationCategories = nil
-        store.shield.webDomains = nil
+        #if canImport(ManagedSettings) && canImport(FamilyControls)
+        clearShield(in: ManagedSettingsStore())
+        clearShield(in: ManagedSettingsStore(named: .buddyLockUsageLimitStore))
         #endif
 
         isShieldActive = false
@@ -567,9 +714,7 @@ final class ScreenTimeManager: ObservableObject {
             await MainActor.run {
                 self.exceptionEndsAt = nil
                 // Re-evaluate which mode we should be in and re-apply.
-                if self.activeMode != .idle {
-                    self.applyShield()
-                }
+                self.refreshShieldForCurrentState()
             }
         }
     }
@@ -609,9 +754,7 @@ final class ScreenTimeManager: ObservableObject {
             await MainActor.run {
                 self.exceptionEndsAt = nil
                 // Restore full shields according to the current mode.
-                if self.activeMode != .idle {
-                    self.applyShield()
-                }
+                self.refreshShieldForCurrentState()
             }
         }
     }
@@ -648,6 +791,162 @@ final class ScreenTimeManager: ObservableObject {
         }
     }
 
+    #if canImport(FamilyControls)
+    private func persistSelection() {
+        guard let data = try? JSONEncoder().encode(selection) else {
+            UserDefaults.standard.removeObject(forKey: Self.persistedSelectionKey)
+            return
+        }
+
+        UserDefaults.standard.set(data, forKey: Self.persistedSelectionKey)
+    }
+
+    private func restorePersistedSelectionIfNeeded() {
+        guard
+            let data = UserDefaults.standard.data(forKey: Self.persistedSelectionKey),
+            let persistedSelection = try? JSONDecoder().decode(FamilyActivitySelection.self, from: data)
+        else {
+            return
+        }
+
+        selection = persistedSelection
+    }
+    #else
+    private func persistSelection() { }
+    private func restorePersistedSelectionIfNeeded() { }
+    #endif
+
+    private func restoreUsageLimitPreferences() {
+        let defaults = UserDefaults.standard
+        usageLimitMinutes = min(max(defaults.integer(forKey: Self.persistedUsageLimitMinutesKey), 0), 760)
+        if defaults.object(forKey: Self.persistedUsageLimitMinutesKey) == nil {
+            usageLimitMinutes = 30
+        }
+
+        isUsageLimitEnabled = defaults.bool(forKey: Self.persistedUsageLimitEnabledKey)
+        usageLimitState = isUsageLimitEnabled ? .monitoring : .inactive
+    }
+
+    private func persistUsageLimitPreferences() {
+        let defaults = UserDefaults.standard
+        defaults.set(isUsageLimitEnabled, forKey: Self.persistedUsageLimitEnabledKey)
+        defaults.set(usageLimitMinutes, forKey: Self.persistedUsageLimitMinutesKey)
+    }
+
+    private func usageLimitSharedDefaults() -> UserDefaults? {
+        UserDefaults(suiteName: BuddyLockNotificationRoute.appGroup)
+    }
+
+    private func refreshUsageLimitMonitoring(resetExceededState: Bool = false) {
+        guard isUsageLimitEnabled else {
+            usageLimitState = .inactive
+            return
+        }
+
+        #if canImport(DeviceActivity) && canImport(FamilyControls)
+        let hasTrackedSelection =
+            !selection.applicationTokens.isEmpty ||
+            !selection.categoryTokens.isEmpty ||
+            !selection.webDomainTokens.isEmpty
+
+        guard isAuthorized, hasTrackedSelection else {
+            usageLimitState = hasTrackedSelection ? .monitoring : .inactive
+            stopUsageLimitMonitoring(clearExceededState: false)
+            refreshShieldForCurrentState()
+            return
+        }
+
+        guard let defaults = usageLimitSharedDefaults() else {
+            usageLimitState = .monitoring
+            refreshShieldForCurrentState()
+            return
+        }
+
+        if let data = try? JSONEncoder().encode(selection) {
+            defaults.set(data, forKey: Self.usageLimitSharedSelectionKey)
+        } else {
+            defaults.removeObject(forKey: Self.usageLimitSharedSelectionKey)
+        }
+        defaults.set(true, forKey: Self.usageLimitSharedEnabledKey)
+        defaults.set(usageLimitMinutes, forKey: Self.usageLimitSharedMinutesKey)
+
+        if resetExceededState {
+            defaults.set(false, forKey: Self.usageLimitSharedExceededKey)
+            defaults.removeObject(forKey: Self.usageLimitSharedExceededAtKey)
+            usageLimitExceededAt = nil
+        }
+
+        let schedule = DeviceActivitySchedule(
+            intervalStart: DateComponents(hour: 0, minute: 0),
+            intervalEnd: DateComponents(hour: 23, minute: 59),
+            repeats: true,
+            warningTime: nil
+        )
+
+        let event = DeviceActivityEvent(
+            applications: selection.applicationTokens,
+            categories: selection.categoryTokens,
+            webDomains: selection.webDomainTokens,
+            threshold: DateComponents(minute: max(usageLimitMinutes, 1)),
+            includesPastActivity: true
+        )
+
+        do {
+            let center = DeviceActivityCenter()
+            try center.startMonitoring(
+                .buddyLockUsageLimit,
+                during: schedule,
+                events: [.buddyLockUsageLimitThreshold: event]
+            )
+
+            if usageLimitMinutes == 0 {
+                let exceededAt: Date
+
+                if !resetExceededState,
+                   defaults.bool(forKey: Self.usageLimitSharedExceededKey),
+                   let timestamp = defaults.object(forKey: Self.usageLimitSharedExceededAtKey) as? TimeInterval {
+                    exceededAt = Date(timeIntervalSince1970: timestamp)
+                } else {
+                    exceededAt = Date()
+                }
+
+                defaults.set(true, forKey: Self.usageLimitSharedExceededKey)
+                defaults.set(exceededAt.timeIntervalSince1970, forKey: Self.usageLimitSharedExceededAtKey)
+                usageLimitState = .exceeded
+                usageLimitExceededAt = exceededAt
+                refreshShieldForCurrentState()
+            } else if resetExceededState {
+                usageLimitState = .monitoring
+                refreshShieldForCurrentState()
+            } else {
+                syncUsageLimitStateFromSharedDefaults()
+            }
+        } catch {
+            print("ScreenTimeManager: Failed to start usage limit monitoring: \(error)")
+            usageLimitState = .inactive
+            refreshShieldForCurrentState()
+        }
+        #else
+        usageLimitState = isUsageLimitEnabled ? .monitoring : .inactive
+        #endif
+    }
+
+    private func stopUsageLimitMonitoring(clearExceededState: Bool) {
+        #if canImport(DeviceActivity)
+        let center = DeviceActivityCenter()
+        center.stopMonitoring([.buddyLockUsageLimit])
+        #endif
+
+        if let defaults = usageLimitSharedDefaults() {
+            defaults.set(false, forKey: Self.usageLimitSharedEnabledKey)
+
+            if clearExceededState {
+                defaults.set(false, forKey: Self.usageLimitSharedExceededKey)
+                defaults.removeObject(forKey: Self.usageLimitSharedExceededAtKey)
+            }
+        }
+    }
+
     private func restorePersistedSessionIfNeeded() {
         guard
             let data = UserDefaults.standard.data(forKey: Self.persistedSessionKey),
@@ -675,8 +974,8 @@ final class ScreenTimeManager: ObservableObject {
         let remaining = Int(end.timeIntervalSinceNow.rounded())
         guard remaining > 0 else {
             clearPersistedSession()
-            clearShield()
             activeMode = isBaselineEnabled ? .baseline : .idle
+            refreshShieldForCurrentState()
             return
         }
 
@@ -796,5 +1095,21 @@ extension ScreenTimeManager {
 extension ScreenTimeManager {
     func resolvedAppNames() -> [(token: AnyHashable, name: String)] { [] }
     var selectionSummary: String { "" }
+}
+#endif
+
+#if canImport(DeviceActivity)
+private extension DeviceActivityName {
+    static let buddyLockUsageLimit = Self("buddylock.usage-limit")
+}
+
+private extension DeviceActivityEvent.Name {
+    static let buddyLockUsageLimitThreshold = Self("buddylock.usage-limit-threshold")
+}
+#endif
+
+#if canImport(ManagedSettings)
+private extension ManagedSettingsStore.Name {
+    static let buddyLockUsageLimitStore = Self("buddylock.usage-limit-store")
 }
 #endif
